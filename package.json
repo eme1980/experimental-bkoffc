@@ -1,28 +1,16 @@
 {
-  "name": "hermes-agent",
+  "name": "experimental-bkoffc",
   "version": "1.0.0",
-  "description": "An AI agent with advanced tool-calling capabilities, featuring a flexible toolsets system for organizing and managing tools.",
-  "private": true,
+  "description": "TDD Authentication System",
+  "main": "src/index.ts",
   "scripts": {
-    "postinstall": "echo '✅ Browser tools ready. Run: python run_agent.py --help'"
+    "test": "vitest run"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/NousResearch/Hermes-Agent.git"
-  },
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/NousResearch/Hermes-Agent/issues"
-  },
-  "homepage": "https://github.com/NousResearch/Hermes-Agent#readme",
-  "dependencies": {
-    "@askjo/camofox-browser": "^1.5.2",
-    "agent-browser": "^0.26.0"
-  },
-  "overrides": {
-    "lodash": "4.18.1"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0"
   }
 }
