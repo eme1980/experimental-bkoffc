@@ -1,15 +1,20 @@
 {
   "name": "experimental-bkoffc",
   "version": "1.0.0",
+  "type": "module",
   "description": "TDD Authentication System",
   "main": "src/index.ts",
   "scripts": {
+    "start": "node --loader ts-node/esm src/index.ts",
+    "dev": "node --loader ts-node/esm --watch src/index.ts",
     "test": "vitest run"
   },
   "dependencies": {
-    "@insforge/sdk": "^1.4.2"
+    "@insforge/sdk": "^1.4.2",
+    "express": "^5.2.1"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0",
