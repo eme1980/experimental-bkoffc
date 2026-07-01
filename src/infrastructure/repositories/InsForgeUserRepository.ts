@@ -32,4 +32,21 @@ export class InsForgeUserRepository implements UserRepository {
       throw new Error('Could not fetch user from database');
     }
   }
+
+  async findByResetToken(token: string): Promise<User | null> {
+    try {
+      const results = await insforgeClient.db.select('users', {
+        where: { resetToken: token },
+      });
+      
+      if (results.length === 0) return null;
+      
+      const data = results[0];
+      return new User(data.id, data.email, data.name);
+    } catch (error) {
+      console.error('Error finding user by reset token in InsForge:', error);
+      throw new Error('Could not fetch user from database');
+    }
+  }
+
 }
