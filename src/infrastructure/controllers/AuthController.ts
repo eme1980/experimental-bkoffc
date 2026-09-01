@@ -25,11 +25,11 @@ export class AuthController {
 
   async register(req: Request, res: Response) {
     try {
-      const { name, email, password } = req.body;
-      if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Name, email and password are required' });
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
       }
-      const result = await this.registerUserUseCase.execute({ name, email, password });
+      const result = await this.registerUserUseCase.execute(email, password);
       return res.status(201).json(result);
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
