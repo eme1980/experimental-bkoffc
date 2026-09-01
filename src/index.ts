@@ -1,5 +1,5 @@
 import express from 'express';
-import { InsForgeUserRepository } from './infrastructure/repositories/InsForgeUserRepository';
+import { InsForgeAuthRepository } from './infrastructure/repositories/InsForgeAuthRepository';
 import { LoginUser } from './core/use-cases/LoginUser';
 import { RegisterUser } from './core/use-cases/RegisterUser';
 import { AuthController } from './infrastructure/controllers/AuthController';
@@ -8,9 +8,9 @@ const app = express();
 app.use(express.json());
 
 // Composition Root: Inyección de Dependencias
-const userRepository = new InsForgeUserRepository();
-const loginUserUseCase = new LoginUser(userRepository);
-const registerUserUseCase = new RegisterUser(userRepository);
+const authRepository = new InsForgeAuthRepository();
+const loginUserUseCase = new LoginUser(authRepository);
+const registerUserUseCase = new RegisterUser(authRepository);
 const authController = new AuthController(loginUserUseCase, registerUserUseCase);
 
 // Rutas
