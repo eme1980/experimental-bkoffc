@@ -1,39 +1,33 @@
 import { describe, it, expect, vi } from 'vitest';
 import { RegisterUser } from '../../../src/core/use-cases/RegisterUser';
-import { UserRepository } from '../../../src/core/use-cases/UserRepository';
+import { AuthRepository } from '../../../src/core/use-cases/AuthRepository';
 
 describe('RegisterUser Use Case', () => {
-  // Mock del repositorio
-  const mockUserRepository: UserRepository = {
-    findByEmail: vi.fn(),
-    save: vi.fn(),
+  const mockAuthRepository: AuthRepository = {
+    register: vi.fn(),
+    login: vi.fn(),
   };
 
   it('should register a new user successfully', async () => {
-    // Arrange: Usuario no existe
-    vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(null);
-    vi.mocked(mockUserRepository.save).mockResolvedValue({ 
-      email: 'test@example.com', 
-      password: 'Password123!' 
+    vi.mocked(mockAuthRepository.register).mockResolvedValue({
+      token: 'session-token',
+      user: { id: 'user-1', email: 'test@example.com' },
     });
 
-    const useCase = new RegisterUser(mockUserRepository);
+    const useCase = new RegisterUser(mockAuthRepository);
     const result = await useCase.execute('test@example.com', 'Password123!');
 
-    expect(result.email).toBe('test@example.com');
-    expect(mockUserRepository.save).toHaveBeenCalled();
+    expect(result.user.email).toBe('test@example.com');
+    expect(result.token).toBe('session-token');
+    expect(mockAuthRepository.register).toHaveBeenCalledWith('test@example.com', 'Password123!');
   });
 
-  it('should throw an error if the user already exists', async () => {
-    // Arrange: Usuario ya existe
-    vi.mocked(mockUserRepository.findByEmail).mockResolvedValue({ 
-      email: 'test@example.com', 
-      password: 'somepassword' 
-    });
+  it('should propagate an error when registration fails', async () => {
+    vi.mocked(mockAuthRepository.register).mockRejectedValue(new Error('Registration failed'));
 
-    const useCase = new RegisterUser(mockUserRepository);
-    
+    const useCase = new RegisterUser(mockAuthRepository);
+
     await expect(useCase.execute('test@example.com', 'Password123!'))
-      .rejects.toThrow('User already exists');
+      .rejects.toThrow('Registration failed');
   });
 });
