@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RequestPasswordReset } from '/opt/data/experimental-bkoffc/src/core/use-cases/RequestPasswordReset';
+import { RequestPasswordReset } from '../../../src/core/use-cases/RequestPasswordReset';
 
 describe('RequestPasswordReset Use Case', () => {
   let userRepository: any;
