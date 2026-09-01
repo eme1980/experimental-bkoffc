@@ -14,6 +14,10 @@ const registerUserUseCase = new RegisterUser(userRepository);
 const authController = new AuthController(loginUserUseCase, registerUserUseCase);
 
 // Rutas
+app.get('/', (req, res) => {
+  res.json({ name: 'Experimental Backoffice API', version: '1.0.0', status: 'ok' });
+});
+
 app.post('/auth/login', (req, res) => authController.login(req, res));
 app.post('/auth/register', (req, res) => authController.register(req, res));
 
