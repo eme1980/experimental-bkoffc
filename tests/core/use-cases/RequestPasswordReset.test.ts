@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RequestPasswordReset } from '../../../src/core/use-cases/RequestPasswordReset';
 
-// Mock del módulo crypto para verificar que se usa randomBytes
-vi.mock('crypto', () => ({
-  randomBytes: vi.fn(),
-}));
+// Mock del módulo crypto para verificar que se usa randomBytes,
+// conservando el resto (createHash) que requiere hashToken.
+vi.mock('crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('crypto')>();
+  return { ...actual, randomBytes: vi.fn() };
+});
 import { randomBytes } from 'crypto';
 
 // sha256 en hex de los tokens "en claro" que genera el mock
