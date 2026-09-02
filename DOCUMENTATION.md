@@ -250,14 +250,17 @@ Test Files  6 passed (6)
 
 ### Comandos
 ```bash
-npm test          # ejecuta la suite (vitest run)
-# sin modo watch configurado en package.json
+npm test            # ejecuta la suite (vitest run)
+npm run test:coverage  # suite + reporte de cobertura (umbrales 90%)
+npm run lint        # ESLint
+npm run typecheck   # tsc --noEmit
 ```
 
 ### Análisis estático / linters
-- **No hay linter** (no ESLint/Biome en `package.json`/config).
-- **No hay coverage configurado** (`coverage/` solo está ignorado en `.gitignore`; no hay `--coverage` ni umbrales).
-- **No existe `tsconfig.json`**, por lo que el build NO realiza type-checking estricto (solo `esbuild`).
+- **ESLint 9** (flat config `eslint.config.js`, `typescript-eslint`). Comando: `npm run lint`.
+- **TypeScript strict type-check**: `npm run typecheck` (`tsc --noEmit`).
+- **Cobertura de tests** (Vitest + `@vitest/coverage-v8`): umbrales 90%; el core (entities, use-cases, controllers) está al **100%**. Comando: `npm run test:coverage`.
+- Los adaptadores externos (SDK de InsForge), el cliente y el Composition Root se excluyen de la cobertura por ser wrappers finos que requieren mocking del SDK externo.
 
 ---
 
@@ -292,9 +295,9 @@ npm test          # ejecuta la suite (vitest run)
 1. ✅ **Recuperación de contraseña cableada** (resuelto): `RequestPasswordReset`, `ResetPassword`, `InsForgeUserRepository` e `InsForgeEmailService` ahora se inyectan en `src/index.ts` y se exponen vía `POST /auth/reset-password-request` y `POST /auth/reset-password`.
 2. ✅ **Bug Vite corregido**: `InsForgeEmailService` usa ahora `process.env.VITE_APP_URL` y la API real `client.emails.send({ to, subject, html })` (el campo es `html`, no `text`).
 3. ✅ **Token criptográficamente seguro**: `RequestPasswordReset` usa `crypto.randomBytes(32)` (antes `Math.random()`) y el import incorrecto `{ crypto }` se corrigió a `{ randomBytes }`.
-4. ⏳ **Tipado débil**: `UserRepository` usa `any` / objeto plano `ResetUser`. Se podría tipar con una interfaz dedicada.
+4. ✅ **Tipado débil corregido**: `UserRepository` usa el tipo de dominio `ResetUser` (definido en `core/entities/User.ts`), sin `any`.
 5. ✅ **`tsconfig.json` añadido** (modo `strict`, `moduleResolution: bundler`); el typecheck ahora pasa limpio.
-6. ⏳ **Mejoras de calidad pendientes**: añadir ESLint y configurar cobertura de tests (`coverage/` sigue siendo solo un ignore). Se creó `.env.example` durante el cableado.
+6. ✅ **Herramientas de calidad añadidas**: ESLint 9 (flat config, `typescript-eslint`), cobertura de tests (Vitest v8, umbrales 90%, 100% en core) y scripts `lint`, `typecheck` y `test:coverage`. Se creó `.env.example` y el `README.md` del repo.
 
 ### API real de InsForge (SDK `@insforge/sdk` 1.4.2) — referencia verificada
 - **Auth:** `client.auth.signUp({ email, password })`, `client.auth.signInWithPassword({ email, password })`.
