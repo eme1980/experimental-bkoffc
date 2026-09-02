@@ -18,3 +18,17 @@ export class User {
     return emailRegex.test(email);
   }
 }
+
+/**
+ * Registro de dominio de un usuario persistido, tal y como lo maneja el flujo
+ * de recuperación de contraseña (id, email + token de reset).
+ * El Core lo define y la infraestructura lo implementa/mapea.
+ */
+export type ResetUser = {
+  id?: string;
+  email: string;
+  /** Contraseña, presente cuando el flujo de reset la actualiza. */
+  password?: string;
+  resetToken?: string | null;
+  resetTokenExpires?: Date | null;
+};
