@@ -1,5 +1,6 @@
 import { EmailService } from '../../core/use-cases/EmailService';
 import { insforgeClient } from '../insforge/client';
+import { logger } from '../logger/Logger';
 
 export class InsForgeEmailService implements EmailService {
   async sendResetEmail(email: string, token: string): Promise<void> {
@@ -23,9 +24,9 @@ export class InsForgeEmailService implements EmailService {
         subject: 'Recuperación de Contraseña - Experimental BKOFFC',
         html: htmlBody,
       });
-      console.log(`Reset email sent successfully to ${email}`);
+      logger.info('Email de recuperación enviado', { email });
     } catch (error) {
-      console.error('Error sending reset email via InsForge:', error);
+      logger.error('Error enviando el email de recuperación vía InsForge', error);
       throw new Error('Failed to send recovery email');
     }
   }

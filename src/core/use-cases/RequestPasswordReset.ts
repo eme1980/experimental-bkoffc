@@ -1,6 +1,7 @@
 import { UserRepository } from './UserRepository';
 import { EmailService } from './EmailService';
 import { randomBytes } from 'crypto';
+import { hashToken } from '../security/hashToken';
 
 export class RequestPasswordReset {
   constructor(
@@ -15,19 +16,20 @@ export class RequestPasswordReset {
       throw new Error('User not found');
     }
 
-    // Generamos un token aleatorio seguro (criptográficamente)
+    // Generamos un token aleatorio seguro (criptográficamente) y su huella sha256.
     const token = randomBytes(32).toString('hex');
+    const tokenHash = hashToken(token);
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // Expira en 1 hora
 
-    // Persistimos el token en la base de datos
+    // Persistimos SOLO el hash en la base de datos (nunca el token en claro).
     await this.userRepository.save({
       ...user,
-      resetToken: token,
+      resetToken: tokenHash,
       resetTokenExpires: expiresAt,
     });
 
-    // Enviamos el email con el token
+    // El email recibe el token en claro (el eslabón que llega al usuario).
     await this.emailService.sendResetEmail(email, token);
   }
 }

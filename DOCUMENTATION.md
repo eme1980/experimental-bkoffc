@@ -289,11 +289,10 @@ npm run typecheck   # tsc --noEmit
 - **CI/CD:** **no hay pipeline CI** dentro del repo (no existe `.github/workflows/`). El disparo de deploy lo gestiona Dokploy externamente, no un workflow de GitHub Actions.
 
 ### Logs y monitorización
-- **No hay sistema de logging estructurado** (sin winston/pino). Solo `console.log` / `console.error`:
-  - Arranque: `🚀 Server running on http://localhost:<PORT>` + lista de endpoints.
-  - `InsForgeUserRepository`: `Error saving user to InsForge` / `Error finding user in InsForge`.
-  - `InsForgeEmailService`: `Reset email sent successfully` / `Error sending reset email via InsForge`.
-  - `client.ts`: `Missing InsForge configuration...` si faltan `VITE_INSFORGE_URL`/`VITE_INSFORGE_KEY`.
+- **Logging estructurado** (`src/infrastructure/logger/`): sin dependencias externas. `Logger` escribe **una línea JSON por evento** — `{ timestamp, level, message, ...meta }` — a `stdout` (debug/info/warn) o `stderr` (error), pensado para la agregación de logs de Dokploy.
+  - Niveles: `debug < info < warn < error`. El nivel mínimo se ajusta con `LOG_LEVEL` (defecto `info`).
+  - `createRequestLogger` es un middleware que emite un evento `request completed` (`method`, `path`, `status`, `durationMs`) al finalizar cada petición HTTP.
+  - Sustituye todos los `console.log`/`console.error` previos (arranque, `InsForgeUserRepository`, `InsForgeEmailService`, `client.ts`).
 
 ### Mantenimiento / operativa habitual
 - Revisar logs del contenedor en Dokploy o con:
@@ -320,3 +319,6 @@ npm run typecheck   # tsc --noEmit
 - **Auth:** `client.auth.signUp({ email, password })`, `client.auth.signInWithPassword({ email, password })`.
 - **BD:** `client.database.from('users').select().eq(col, val).maybeSingle()` para consultas. Escrituras en `save()`: `insert(payload).select()` para nuevos usuarios, `update(payload).eq('id', id).select()` para usuarios existentes (flujo de reset). **NO** existe `client.db`.
 - **Email:** `client.emails.send({ to, subject, html })`. **NO** existe `client.email`. El campo de contenido es `html` (obligatorio), no `text`.
+
+#### Observabilidad (logging estructurado)
+7. ⏳/✅ **Logging estructurado añadido** (punto 5 de la lista original): se creó `src/infrastructure/logger/` (`Logger` + `createRequestLogger`) para sustituir todos los `console.log`/`console.error` y se cableó en `src/index.ts`, `client.ts`, `InsForgeUserRepository` e `InsForgeEmailService`. Nivel configurable vía `LOG_LEVEL`. Pendiente: si el proyecto crece, valorar agregación central (p. ej. volumen/DaemonSet de logs o un servicio externo) y/o export de trazas de request con correlación por `requestId`.

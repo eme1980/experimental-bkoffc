@@ -1,4 +1,5 @@
 import { InsForgeClient } from '@insforge/sdk';
+import { logger } from '../logger/Logger';
 
 const config = {
   baseUrl: process.env.VITE_INSFORGE_URL,
@@ -6,7 +7,7 @@ const config = {
 };
 
 if (!config.baseUrl || !config.anonKey) {
-  console.error('Missing InsForge configuration. Please check VITE_INSFORGE_URL and VITE_INSFORGE_KEY environment variables.');
+  logger.error('Falta la configuración de InsForge. Revisa VITE_INSFORGE_URL y VITE_INSFORGE_KEY.');
 }
 
 export const insforgeClient = new InsForgeClient(config);
