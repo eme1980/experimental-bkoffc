@@ -1,6 +1,7 @@
 import { UserRepository } from '../../core/use-cases/UserRepository';
 import { ResetUser } from '../../core/entities/User';
 import { insforgeClient } from '../insforge/client';
+import { logger } from '../logger/Logger';
 
 export class InsForgeUserRepository implements UserRepository {
   async save(user: ResetUser): Promise<void> {
@@ -21,7 +22,7 @@ export class InsForgeUserRepository implements UserRepository {
         await insforgeClient.database.from('users').insert(payload).select();
       }
     } catch (error) {
-      console.error('Error saving user to InsForge:', error);
+      logger.error('Error guardando el usuario en InsForge', error);
       throw new Error('Could not save user to database');
     }
   }
@@ -43,7 +44,7 @@ export class InsForgeUserRepository implements UserRepository {
       const { data, error } = await query.maybeSingle();
 
       if (error) {
-        console.error('Error querying user in InsForge:', error);
+        logger.error('Error consultando el usuario en InsForge', error);
         throw new Error('Could not fetch user from database');
       }
       if (!data) return null;
@@ -55,7 +56,7 @@ export class InsForgeUserRepository implements UserRepository {
         resetTokenExpires: data.reset_token_expires_at ? new Date(data.reset_token_expires_at) : null,
       };
     } catch (error) {
-      console.error('Error finding user in InsForge:', error);
+      logger.error('Error buscando el usuario en InsForge', error);
       throw new Error('Could not fetch user from database');
     }
   }
