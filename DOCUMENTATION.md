@@ -85,6 +85,8 @@ experimental-bkoffc/
 │       └── repositories/
 │           ├── InsForgeAuthRepository.ts # AuthRepository → InsForge SDK
 │           └── InsForgeUserRepository.ts # UserRepository → InsForge db (sin cablear)
+│       ├── middleware/
+│       │   └── rateLimit.ts              # express-rate-limit (login + reset-request)
 ├── tests/                                # Unit tests (Vitest)
 │   ├── core/
 │   │   ├── entities/User.test.ts
@@ -101,7 +103,7 @@ experimental-bkoffc/
 - **Controladores:** `src/infrastructure/controllers/`
 - **Modelos / entidades:** `src/core/entities/`
 - **Migraciones / seeders:** **no existen** (la BD la gestiona InsForge)
-- **Middlewares:** ninguno propio (solo `express.json()` global)
+- **Middlewares:** `express.json()` global + rate limiting en `/auth/login` y `/auth/reset-password-request` vía `src/infrastructure/middleware/rateLimit.ts`.
 - **Tests:** `tests/` (espejo de `src/`)
 
 ---
@@ -221,6 +223,19 @@ El `token` puede ser `null` si el SDK no devuelve `accessToken` (depende del flu
 
 ### Roles y permisos
 - **No existe ningún sistema de roles, permisos ni políticas de autorización.** No hay middlewares de auth, ni casuística de "rol" en ninguna entidad/interfaz.
+
+### Rate limiting (`express-rate-limit ^7.5.1`)
+Protección contra fuerza bruta y spam de emails, definida en `src/infrastructure/middleware/rateLimit.ts` y aplicada solo a los dos endpoints más sensibles (el resto de rutas NO están limitadas):
+
+| Endpoint | Límite | Ventana |
+|---|---|---|
+| `POST /auth/login` | **5 intentos** | 15 minutos |
+| `POST /auth/reset-password-request` | **3 solicitudes** | 1 hora |
+
+- **Clave:** por IP (`req.ip`), el `keyGenerator` por defecto de la librería.
+- **Comportamiento:** el `(límite+1)`-ésimo intento devuelve **`429`** con `{ "error": "<mensaje>" }` e incluye cabeceras estándar `RateLimit-*` (`standardHeaders: 'draft-8'`, `legacyHeaders: false`).
+- **`app.set('trust proxy', 1)`** en `src/index.ts`: necesario porque la app corre detrás del proxy inverso de Dokploy. Sin confiar en proxy, express-rate-limit usaría la IP del proxy para todos los clientes (bloqueo colectivo) o lanzaría `ERR_ERL_PERMISSIVE_TRUST_PROXY` al detectar `X-Forwarded-For`.
+- **Nota (fuera de alcance):** `POST /auth/register` y `POST /auth/reset-password` **no** tienen rate limit. `register` podría ser candidato a fuerza bruta/creación masiva de cuentas si se quiere endurecer en el futuro.
 
 ---
 
