@@ -5,7 +5,7 @@ export class InsForgeEmailService implements EmailService {
   async sendResetEmail(email: string, token: string): Promise<void> {
     // Construimos la URL de recuperación. 
     // En producción, esto debería venir de una variable de entorno (ej: VITE_APP_URL)
-    const appUrl = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
+    const appUrl = process.env.VITE_APP_URL || 'http://localhost:5173';
     const resetLink = `${appUrl}/reset-password?token=${token}`;
 
     const emailBody = `
