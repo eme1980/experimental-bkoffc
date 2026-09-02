@@ -1,6 +1,6 @@
 import { UserRepository } from './UserRepository';
 import { EmailService } from './EmailService';
-import { crypto } from 'crypto';
+import { randomBytes } from 'crypto';
 
 export class RequestPasswordReset {
   constructor(
@@ -15,8 +15,8 @@ export class RequestPasswordReset {
       throw new Error('User not found');
     }
 
-    // Generamos un token aleatorio seguro
-    const token = Math.random().toString(36).substring(2, 15);
+    // Generamos un token aleatorio seguro (criptográficamente)
+    const token = randomBytes(32).toString('hex');
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // Expira en 1 hora
 
