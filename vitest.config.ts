@@ -6,9 +6,10 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      // Adaptadores externos (wrappers finos sobre el SDK de InsForge) y el
-      // Composition Root no se testean en unit para evitar mockear el SDK.
-      exclude: ['src/infrastructure/insforge/**', 'src/infrastructure/repositories/**', 'src/index.ts'],
+      // El Composition Root (src/index.ts) no se testea en unit. Los adaptadores
+      // de InsForge (insforge/** y repositories/**) SÍ se cubren con mocks del SDK.
+      // Los controllers/logger/middleware se cubren vía sus propios tests.
+      exclude: ['src/index.ts'],
       thresholds: {
         statements: 90,
         branches: 90,
