@@ -52,6 +52,7 @@ npm install
 export VITE_INSFORGE_URL=https://tu-proyecto.insforge.app   # obligatorio
 export VITE_INSFORGE_KEY=tu-anon-key                        # obligatorio
 export PORT=3000                                            # opcional
+export LOG_LEVEL=info                                       # opcional (debug|info|warn|error)
 
 # 3. Modo desarrollo (watch)
 npm run dev
