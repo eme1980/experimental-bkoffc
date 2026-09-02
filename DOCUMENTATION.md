@@ -25,7 +25,7 @@ Casos de uso que resuelve hoy:
 - **Framework HTTP:** Express `^5.2.1` (`@types/express ^5.0.6`).
 - **Runtime:** Node.js 18 (fijado en el `Dockerfile`). Dev apunta a `@types/node ^20`.
 - **BaaS / backend externo:** **InsForge** (`@insforge/sdk ^1.4.2`) — gestiona auth (signUp / signInWithPassword), persistencia (tabla `users`) y envío de email.
-- **Base de datos:** no hay ORM propio; la persistencia se delega en InsForge (`client.db.insert` / `client.db.select`). No hay migraciones ni seeders en el repo.
+- **Base de datos:** no hay ORM propio; la persistencia se delega en InsForge (tabla `users` vía `client.database.from(...)`). No hay migraciones ni seeders en el repo.
 - **Build:** `esbuild` `^0.28.2` (bundle ESM).
 - **Dev runner:** `ts-node` `^10.9.0`.
 - **Tests:** `vitest ^1.0.0` (se ejecuta en real con v1.6.1).
@@ -232,8 +232,8 @@ El `token` puede ser `null` si el SDK no devuelve `accessToken` (depende del flu
 ### Estado actual de la suite
 
 ```
-Test Files  6 passed (6)
-     Tests  18 passed (18)
+Test Files  8 passed (8)
+     Tests  28 passed (28)
 ```
 
 | Suite | Tests |
@@ -241,11 +241,13 @@ Test Files  6 passed (6)
 | `tests/core/entities/User.test.ts` | 3 |
 | `tests/core/use-cases/RegisterUser.test.ts` | 2 |
 | `tests/core/use-cases/LoginUser.test.ts` | 2 |
-| `tests/core/use-cases/RequestPasswordReset.test.ts` | 2 |
+| `tests/core/use-cases/RequestPasswordReset.test.ts` | 3 |
 | `tests/core/use-cases/ResetPassword.test.ts` | 3 |
 | `tests/infrastructure/controllers/AuthController.test.ts` | 6 |
+| `tests/infrastructure/controllers/PasswordResetController.test.ts` | 7 |
+| `tests/infrastructure/repositories/InsForgeUserRepository.test.ts` | 2 |
 
-- Estilo **unit** con mocks manuales (`vi.fn()`) de las interfaces.
+- Estilo **unit** con mocks manuales (`vi.fn()`) de las interfaces y del cliente InsForge (`vi.mock`).
 - **Sin tests de integración** (no hay llamadas reales a InsForge en las pruebas).
 
 ### Comandos
@@ -301,5 +303,5 @@ npm run typecheck   # tsc --noEmit
 
 ### API real de InsForge (SDK `@insforge/sdk` 1.4.2) — referencia verificada
 - **Auth:** `client.auth.signUp({ email, password })`, `client.auth.signInWithPassword({ email, password })`.
-- **BD:** `client.database.from('users').select().eq(col, val).maybeSingle()` para consultas; `client.database.from('users').insert(payload).select()` para escrituras. **NO** existe `client.db`.
+- **BD:** `client.database.from('users').select().eq(col, val).maybeSingle()` para consultas. Escrituras en `save()`: `insert(payload).select()` para nuevos usuarios, `update(payload).eq('id', id).select()` para usuarios existentes (flujo de reset). **NO** existe `client.db`.
 - **Email:** `client.emails.send({ to, subject, html })`. **NO** existe `client.email`. El campo de contenido es `html` (obligatorio), no `text`.

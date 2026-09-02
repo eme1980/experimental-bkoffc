@@ -6,12 +6,20 @@ export class InsForgeUserRepository implements UserRepository {
   async save(user: ResetUser): Promise<void> {
     try {
       // API real del SDK: client.database.from(table).insert(payload).select()
-      await insforgeClient.database.from('users').insert({
+      // o client.database.from(table).update(payload).eq("id", id).select()
+      const payload = {
         id: user.id,
         email: user.email,
         reset_token: user.resetToken ?? null,
         reset_token_expires_at: user.resetTokenExpires?.toISOString() ?? null,
-      }).select();
+      };
+
+      if (user.id) {
+        // El usuario ya existe (flujo de reset): actualizamos la fila existente.
+        await insforgeClient.database.from('users').update(payload).eq('id', user.id).select();
+      } else {
+        await insforgeClient.database.from('users').insert(payload).select();
+      }
     } catch (error) {
       console.error('Error saving user to InsForge:', error);
       throw new Error('Could not save user to database');
