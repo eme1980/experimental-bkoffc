@@ -8,9 +8,12 @@ import { RequestPasswordReset } from './core/use-cases/RequestPasswordReset';
 import { ResetPassword } from './core/use-cases/ResetPassword';
 import { AuthController } from './infrastructure/controllers/AuthController';
 import { PasswordResetController } from './infrastructure/controllers/PasswordResetController';
+import { logger } from './infrastructure/logger/Logger';
+import { createRequestLogger } from './infrastructure/logger/requestLogger';
 
 const app = express();
 app.use(express.json());
+app.use(createRequestLogger(logger));
 
 // Composition Root: Inyección de Dependencias
 const authRepository = new InsForgeAuthRepository();
@@ -37,10 +40,13 @@ app.post('/auth/reset-password', (req, res) => passwordResetController.reset(req
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`Endpoints:`);
-  console.log(`  POST /auth/register`);
-  console.log(`  POST /auth/login`);
-  console.log(`  POST /auth/reset-password-request`);
-  console.log(`  POST /auth/reset-password`);
+  logger.info('Server running', { url: `http://localhost:${PORT}` });
+  logger.info('Endpoints registrados', {
+    routes: [
+      'POST /auth/register',
+      'POST /auth/login',
+      'POST /auth/reset-password-request',
+      'POST /auth/reset-password',
+    ],
+  });
 });
