@@ -1,52 +1,62 @@
 import { UserRepository } from '../../core/use-cases/UserRepository';
-import { User } from '../../core/entities/User';
 import { insforgeClient } from '../insforge/client';
 
+// El flujo de reset maneja objetos planos (email, id, resetToken, resetTokenExpires).
+// Los registros viven en la tabla 'users' de InsForge.
+type ResetUser = {
+  id?: string;
+  email: string;
+  resetToken?: string | null;
+  resetTokenExpires?: Date | null;
+};
+
 export class InsForgeUserRepository implements UserRepository {
-  async save(user: User): Promise<void> {
+  async save(user: ResetUser): Promise<void> {
     try {
-      await insforgeClient.db.insert('users', {
+      // API real del SDK: client.database.from(table).insert(payload).select()
+      await insforgeClient.database.from('users').insert({
         id: user.id,
         email: user.email,
-        name: user.name,
-        created_at: new Date().toISOString(),
-      });
+        reset_token: user.resetToken ?? null,
+        reset_token_expires_at: user.resetTokenExpires?.toISOString() ?? null,
+      }).select();
     } catch (error) {
       console.error('Error saving user to InsForge:', error);
       throw new Error('Could not save user to database');
     }
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<ResetUser | null> {
+    return this.findBy({ email });
+  }
+
+  async findByResetToken(token: string): Promise<ResetUser | null> {
+    return this.findBy({ reset_token: token });
+  }
+
+  private async findBy(filter: Record<string, string>): Promise<ResetUser | null> {
     try {
-      const results = await insforgeClient.db.select('users', {
-        where: { email },
-      });
-      
-      if (results.length === 0) return null;
-      
-      const data = results[0];
-      return new User(data.id, data.email, data.name);
+      let query = insforgeClient.database.from('users').select() as any;
+      for (const [column, value] of Object.entries(filter)) {
+        query = query.eq(column, value);
+      }
+      const { data, error } = await query.maybeSingle();
+
+      if (error) {
+        console.error('Error querying user in InsForge:', error);
+        throw new Error('Could not fetch user from database');
+      }
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        email: data.email,
+        resetToken: data.reset_token ?? null,
+        resetTokenExpires: data.reset_token_expires_at ? new Date(data.reset_token_expires_at) : null,
+      };
     } catch (error) {
       console.error('Error finding user in InsForge:', error);
       throw new Error('Could not fetch user from database');
     }
   }
-
-  async findByResetToken(token: string): Promise<User | null> {
-    try {
-      const results = await insforgeClient.db.select('users', {
-        where: { resetToken: token },
-      });
-      
-      if (results.length === 0) return null;
-      
-      const data = results[0];
-      return new User(data.id, data.email, data.name);
-    } catch (error) {
-      console.error('Error finding user by reset token in InsForge:', error);
-      throw new Error('Could not fetch user from database');
-    }
-  }
-
 }
