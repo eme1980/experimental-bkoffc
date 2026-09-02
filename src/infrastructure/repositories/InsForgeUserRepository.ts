@@ -1,14 +1,6 @@
 import { UserRepository } from '../../core/use-cases/UserRepository';
+import { ResetUser } from '../../core/entities/User';
 import { insforgeClient } from '../insforge/client';
-
-// El flujo de reset maneja objetos planos (email, id, resetToken, resetTokenExpires).
-// Los registros viven en la tabla 'users' de InsForge.
-type ResetUser = {
-  id?: string;
-  email: string;
-  resetToken?: string | null;
-  resetTokenExpires?: Date | null;
-};
 
 export class InsForgeUserRepository implements UserRepository {
   async save(user: ResetUser): Promise<void> {
