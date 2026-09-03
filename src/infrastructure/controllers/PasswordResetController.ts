@@ -1,12 +1,8 @@
 import { Request, Response } from 'express';
-import { RequestPasswordReset } from '../../core/use-cases/RequestPasswordReset';
-import { ResetPassword } from '../../core/use-cases/ResetPassword';
+import { AuthResetRepository } from '../../core/use-cases/AuthResetRepository';
 
 export class PasswordResetController {
-  constructor(
-    private requestPasswordReset: RequestPasswordReset,
-    private resetPassword: ResetPassword
-  ) {}
+  constructor(private authResetRepository: AuthResetRepository) {}
 
   async requestReset(req: Request, res: Response) {
     try {
@@ -22,7 +18,7 @@ export class PasswordResetController {
       const appUrl = process.env.VITE_APP_URL || 'http://localhost:5173';
       const target = redirectTo || `${appUrl}/reset-password`;
 
-      await this.requestPasswordReset.execute(email, target);
+      await this.authResetRepository.sendResetPasswordEmail(email, target);
       // Respuesta genérica: InsForge previene la enumeración de usuarios, así
       // que siempre devolvemos el mismo mensaje aunque el email no exista.
       return res.status(200).json({ message: 'If the email exists, a recovery link was sent' });
@@ -39,7 +35,7 @@ export class PasswordResetController {
         return res.status(400).json({ error: 'Token and password are required' });
       }
 
-      await this.resetPassword.execute(token, password);
+      await this.authResetRepository.resetPassword(password, token);
       return res.status(200).json({ message: 'Password updated successfully' });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });

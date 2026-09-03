@@ -52,6 +52,17 @@ describe('InsForgeAuthRepository', () => {
       expect(result.user.email).toBe('fallback@example.com');
     });
 
+    it('should map accessToken to null when the SDK returns none', async () => {
+      vi.mocked(insforgeClient.auth.signUp).mockResolvedValue({
+        data: { accessToken: null, user: { id: 'u3', email: 't@example.com' } },
+        error: null,
+      } as any);
+
+      const result = await repo.register('t@example.com', 'Password123!');
+
+      expect(result.token).toBeNull();
+    });
+
     it('should throw when signUp returns an error', async () => {
       vi.mocked(insforgeClient.auth.signUp).mockResolvedValue({
         data: null,
@@ -95,6 +106,18 @@ describe('InsForgeAuthRepository', () => {
         token: 'tok-login',
         user: { id: 'u9', email: 'known@example.com' },
       });
+    });
+
+    it('should map accessToken to null and fall back to request email when SDK omits them', async () => {
+      vi.mocked(insforgeClient.auth.signInWithPassword).mockResolvedValue({
+        data: { accessToken: null, user: { id: 'u9' } },
+        error: null,
+      } as any);
+
+      const result = await repo.login('known@example.com', 'Password123!');
+
+      expect(result.token).toBeNull();
+      expect(result.user.email).toBe('known@example.com');
     });
 
     it('should throw when signInWithPassword returns an error', async () => {

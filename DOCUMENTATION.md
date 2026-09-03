@@ -43,14 +43,13 @@ Casos de uso que resuelve hoy:
                 │ implementa interfaces del Core
 ┌───────────────┴─────────────────────────────────┐
 │  CORE (dominio, sin dependencias externas)      │
-│  • Use-Cases (RegisterUser, LoginUser, ...)     │
 │  • Interfaces (AuthRepository, AuthResetRepository) — contratos │
 └─────────────────────────────────────────────────┘
 ```
 
 - La **dependencia apunta hacia dentro**: el Core solo conoce interfaces (`AuthRepository`, `AuthResetRepository`). La infraestructura implementa esas interfaces y se inyecta en runtime.
-- **Inyección de dependencias** manual mediante **Composition Root** en `src/index.ts` (sin contenedor DI).
-- No es MVC ni modelo-cliente convencional: es un pequeño backend de autenticación delegada en un BaaS.
+- **Inyección de dependencias** manual mediante **Composition Root** en `src/index.ts` (sin contenedor DI). Los controllers inyectan directamente las interfaces del repositorio.
+- No es MVC ni modelo-cliente convencional: es un pequeño backend de autenticación delegada en un BaaS. **No hay capa de use-cases** (se eliminaron los proxies puros): el Core expone solo las interfaces-contrato que la infraestructura implementa y cablea el Composition Root.
 
 ---
 
@@ -62,12 +61,8 @@ experimental-bkoffc/
 │   ├── index.ts                          # Composition Root + rutas Express + arranque
 │   ├── core/                             # CAPA CORE (dominio puro, sin imports externos)
 │   │   └── use-cases/
-│   │       ├── AuthRepository.ts         # Interfaz + tipo AuthResult
-│   │       ├── AuthResetRepository.ts    # Interfaz de recuperación de contraseña (delegada a InsForge)
-│   │       ├── LoginUser.ts              # Use-case login
-│   │       ├── RegisterUser.ts           # Use-case registro
-│   │       ├── RequestPasswordReset.ts   # Use-case solicitar reset
-│   │       └── ResetPassword.ts          # Use-case reset
+│   │       ├── AuthRepository.ts         # Interfaz + tipo AuthResult (login/registro)
+│   │       └── AuthResetRepository.ts    # Interfaz de recuperación de contraseña (delegada a InsForge)
 │   └── infrastructure/                   # CAPA INFRAESTRUCTURA (adaptadores)
 │       ├── controllers/
 │       │   ├── AuthController.ts         # Controlador HTTP de auth (login/registro)
@@ -244,20 +239,16 @@ Protección contra fuerza bruta y spam de emails, definida en `src/infrastructur
 ### Estado actual de la suite
 
 ```
-Test Files  12 passed (12)
-     Tests  48 passed (48)
+Test Files  8 passed (8)
+     Tests  45 passed (45)
 ```
 
 | Suite | Tests |
 |---|---|
-| `tests/core/use-cases/RegisterUser.test.ts` | 2 |
-| `tests/core/use-cases/LoginUser.test.ts` | 2 |
-| `tests/core/use-cases/RequestPasswordReset.test.ts` | 2 |
-| `tests/core/use-cases/ResetPassword.test.ts` | 1 |
 | `tests/infrastructure/controllers/AuthController.test.ts` | 6 |
-| `tests/infrastructure/controllers/PasswordResetController.test.ts` | 8 |
-| `tests/infrastructure/repositories/InsForgeAuthRepository.test.ts` | 7 |
-| `tests/infrastructure/repositories/InsForgeAuthResetRepository.test.ts` | 6 |
+| `tests/infrastructure/controllers/PasswordResetController.test.ts` | 9 |
+| `tests/infrastructure/repositories/InsForgeAuthRepository.test.ts` | 9 |
+| `tests/infrastructure/repositories/InsForgeAuthResetRepository.test.ts` | 7 |
 | `tests/infrastructure/insforge/client.test.ts` | 2 |
 | `tests/infrastructure/logger/Logger.test.ts` | 7 |
 | `tests/infrastructure/logger/requestLogger.test.ts` | 2 |
@@ -277,7 +268,7 @@ npm run typecheck   # tsc --noEmit
 ### Análisis estático / linters
 - **ESLint 9** (flat config `eslint.config.js`, `typescript-eslint`). Comando: `npm run lint`.
 - **TypeScript strict type-check**: `npm run typecheck` (`tsc --noEmit`).
-- **Cobertura de tests** (Vitest + `@vitest/coverage-v8`): umbrales 90%; el core (use-cases) está al **100%**. Comando: `npm run test:coverage`.
+- **Cobertura de tests** (Vitest + `@vitest/coverage-v8`): umbrales 90% (statements, branches, functions, lines). Comando: `npm run test:coverage`.
 - Los adaptadores externos (SDK de InsForge) y el Composition Root se excluyen de la cobertura por ser wrappers finos que requieren mocking del SDK externo.
 
 ---
@@ -322,3 +313,4 @@ npm run typecheck   # tsc --noEmit
 
 #### Observabilidad (logging estructurado)
 7. ✅ **Logging estructurado añadido**: se creó `src/infrastructure/logger/` (`Logger` + `createRequestLogger`) sustituyendo todos los `console.log`/`console.error`. Nivel configurable vía `LOG_LEVEL`. **⏳ Pendiente** (si el proyecto crece): agregación central de logs y correlación de trazas por `requestId`.
+8. ✅ **Simplificación del auth core (T2)**: se eliminaron los use-cases proxy puros (`LoginUser`, `RegisterUser`, `RequestPasswordReset`, `ResetPassword`) que no aportaban lógica. Los controllers dependen directamente de las interfaces del core (`AuthRepository`, `AuthResetRepository`). El Core queda como capa de contratos; la infraestructura implementa e inyecta. Suite: 45 tests / 8 archivos.
