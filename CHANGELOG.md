@@ -7,7 +7,9 @@ proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
-Cambios pendientes de release (se moverán a su versión cuando se publica/taguea).
+### Cambiado
+
+- **Renombrado de variables de entorno:** `VITE_INSFORGE_URL` → `INSFORGE_URL`, `VITE_INSFORGE_KEY` → `INSFORGE_KEY` y `VITE_APP_URL` → `APP_URL`. Se elimina el prefijo `VITE_` (heredado de un frontend Vite) que confundía en un servidor Node/Express. **IMPORTANTE:** actualizar las variables de entorno en DoKploy (`INSFORGE_URL`, `INSFORGE_KEY`, `APP_URL`) tras desplegar esta versión.
 
 ## [1.0.0] - 2026-09-03
 

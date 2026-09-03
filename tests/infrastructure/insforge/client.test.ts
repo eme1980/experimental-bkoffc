@@ -7,26 +7,26 @@ vi.mock('@insforge/sdk', () => ({
 }));
 
 describe('insforge client module', () => {
-  const ORIGINAL_URL = process.env.VITE_INSFORGE_URL;
-  const ORIGINAL_KEY = process.env.VITE_INSFORGE_KEY;
+  const ORIGINAL_URL = process.env.INSFORGE_URL;
+  const ORIGINAL_KEY = process.env.INSFORGE_KEY;
 
   beforeEach(() => {
     InsForgeClientMock.mockClear();
     vi.resetModules();
-    delete process.env.VITE_INSFORGE_URL;
-    delete process.env.VITE_INSFORGE_KEY;
+    delete process.env.INSFORGE_URL;
+    delete process.env.INSFORGE_KEY;
   });
 
   afterEach(() => {
-    if (ORIGINAL_URL === undefined) delete process.env.VITE_INSFORGE_URL;
-    else process.env.VITE_INSFORGE_URL = ORIGINAL_URL;
-    if (ORIGINAL_KEY === undefined) delete process.env.VITE_INSFORGE_KEY;
-    else process.env.VITE_INSFORGE_KEY = ORIGINAL_KEY;
+    if (ORIGINAL_URL === undefined) delete process.env.INSFORGE_URL;
+    else process.env.INSFORGE_URL = ORIGINAL_URL;
+    if (ORIGINAL_KEY === undefined) delete process.env.INSFORGE_KEY;
+    else process.env.INSFORGE_KEY = ORIGINAL_KEY;
   });
 
   it('should instantiate InsForgeClient from env configuration', async () => {
-    process.env.VITE_INSFORGE_URL = 'https://insforge.example.com';
-    process.env.VITE_INSFORGE_KEY = 'anon-test-key';
+    process.env.INSFORGE_URL = 'https://insforge.example.com';
+    process.env.INSFORGE_KEY = 'anon-test-key';
 
     const mod = await import('../../../src/infrastructure/insforge/client');
 
