@@ -1,7 +1,6 @@
 import express from 'express';
 import { InsForgeAuthRepository } from './infrastructure/repositories/InsForgeAuthRepository';
-import { InsForgeUserRepository } from './infrastructure/repositories/InsForgeUserRepository';
-import { InsForgeEmailService } from './infrastructure/insforge/InsForgeEmailService';
+import { InsForgeAuthResetRepository } from './infrastructure/repositories/InsForgeAuthResetRepository';
 import { LoginUser } from './core/use-cases/LoginUser';
 import { RegisterUser } from './core/use-cases/RegisterUser';
 import { RequestPasswordReset } from './core/use-cases/RequestPasswordReset';
@@ -26,13 +25,12 @@ app.set('trust proxy', 1);
 
 // Composition Root: Inyección de Dependencias
 const authRepository = new InsForgeAuthRepository();
-const userRepository = new InsForgeUserRepository();
-const emailService = new InsForgeEmailService();
+const authResetRepository = new InsForgeAuthResetRepository();
 
 const loginUserUseCase = new LoginUser(authRepository);
 const registerUserUseCase = new RegisterUser(authRepository);
-const requestPasswordResetUseCase = new RequestPasswordReset(userRepository, emailService);
-const resetPasswordUseCase = new ResetPassword(userRepository);
+const requestPasswordResetUseCase = new RequestPasswordReset(authResetRepository);
+const resetPasswordUseCase = new ResetPassword(authResetRepository);
 
 const authController = new AuthController(loginUserUseCase, registerUserUseCase);
 const passwordResetController = new PasswordResetController(requestPasswordResetUseCase, resetPasswordUseCase);

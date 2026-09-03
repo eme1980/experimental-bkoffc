@@ -1,7 +1,7 @@
 # Documentación Técnica — Experimental Backoffice (`experimental-bkoffc`)
 
 > Referencia rápida y completa para retomar el desarrollo sin pérdida de contexto.
-> Toda la información de este documento está extraída **estrictamente** del código fuente actual de la rama `main` (commit `2615e26`).
+> Toda la información de este documento está extraída **estrictamente** del código fuente actual de la rama `main`.
 > No se describen tecnologías ni endpoints que no estén implementados en el repo.
 
 ---
@@ -15,22 +15,20 @@ Backend/backoffice mínimo que expone una API de **autenticación de usuarios** 
 Casos de uso que resuelve hoy:
 - **Registro** de un nuevo usuario.
 - **Login** de un usuario existente.
-- *(Diseñado pero NO expuesto vía API)* flujo de **recuperación de contraseña** (solicitud + reset).
-
-> ⚠️ **Hallazgo clave al documentar:** el flujo de recuperación de contraseña (`RequestPasswordReset`, `ResetPassword`, `InsForgeEmailService`, `InsForgeUserRepository`) **existe en el código fuente y está cubierto por tests, pero NO está cableado en el Composition Root** (`src/index.ts`). No hay rutas HTTP para él. Consultar §7.
+- **Recuperación de contraseña** (solicitud de email + cambio de contraseña), **delegada al flujo nativo de InsForge Auth** (`auth.sendResetPasswordEmail` + `auth.resetPassword`).
 
 ### Stack tecnológico
 
 - **Lenguaje:** TypeScript (~5.0), compilado a ESM.
 - **Framework HTTP:** Express `^5.2.1` (`@types/express ^5.0.6`).
 - **Runtime:** Node.js 18 (fijado en el `Dockerfile`). Dev apunta a `@types/node ^20`.
-- **BaaS / backend externo:** **InsForge** (`@insforge/sdk ^1.4.2`) — gestiona auth (signUp / signInWithPassword), persistencia (tabla `users`) y envío de email.
-- **Base de datos:** no hay ORM propio; la persistencia se delega en InsForge (tabla `users` vía `client.database.from(...)`). No hay migraciones ni seeders en el repo.
+- **BaaS / backend externo:** **InsForge** (`@insforge/sdk ^1.4.2`) — gestiona auth (signUp / signInWithPassword), el flujo de **recuperación de contraseña** nativo y el envío de email.
+- **Base de datos:** no hay ORM propio ni acceso directo a tablas de la BaaS desde el código. Todo el estado de usuario y auth se delega en InsForge (módulo auth). No hay migraciones ni seeders en el repo.
 - **Build:** `esbuild` `^0.28.2` (bundle ESM).
 - **Dev runner:** `ts-node` `^10.9.0`.
 - **Tests:** `vitest ^1.0.0` (se ejecuta en real con v1.6.1).
 
-> Nota: **no existe `tsconfig.json`**. El build usa `esbuild` directamente (sin type-checking estricto en el paso de build). El tipo de caja es xy residual de Vite (`import.meta.env`) en el `InsForgeEmailService` (ver §7).
+> Nota: el build usa `esbuild` directamente (sin type-checking estricto en el paso de build); el type-check estricto se hace aparte con `npm run typecheck` (`tsc --noEmit`, `tsconfig.json` con `strict: true`).
 
 ### Arquitectura
 
@@ -38,22 +36,19 @@ Casos de uso que resuelve hoy:
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  INFRAESTRUCTURE (adaptadores, capa externa)    │
+│  INFRASTRUCTURE (adaptadores, capa externa)    │
 │  • Controllers (HTTP)                           │
 │  • Repositories / client de InsForge (SDK)      │
-│  • EmailService (InsForge email)                │
 └───────────────▲─────────────────────────────────┘
                 │ implementa interfaces del Core
 ┌───────────────┴─────────────────────────────────┐
 │  CORE (dominio, sin dependencias externas)      │
-│  • Entidades (User)                             │
 │  • Use-Cases (RegisterUser, LoginUser, ...)     │
-│  • Interfaces (AuthRepository, UserRepository,  │
-│     EmailService) — contratos                  │
+│  • Interfaces (AuthRepository, AuthResetRepository) — contratos │
 └─────────────────────────────────────────────────┘
 ```
 
-- La **dependencia apunta hacia dentro**: el Core solo conoce interfaces (`AuthRepository`, `UserRepository`, `EmailService`). La infraestructura implementa esas interfaces y se inyecta en runtime.
+- La **dependencia apunta hacia dentro**: el Core solo conoce interfaces (`AuthRepository`, `AuthResetRepository`). La infraestructura implementa esas interfaces y se inyecta en runtime.
 - **Inyección de dependencias** manual mediante **Composition Root** en `src/index.ts` (sin contenedor DI).
 - No es MVC ni modelo-cliente convencional: es un pequeño backend de autenticación delegada en un BaaS.
 
@@ -66,42 +61,44 @@ experimental-bkoffc/
 ├── src/
 │   ├── index.ts                          # Composition Root + rutas Express + arranque
 │   ├── core/                             # CAPA CORE (dominio puro, sin imports externos)
-│   │   ├── entities/
-│   │   │   └── User.ts                   # Entidad con validación de email y password
 │   │   └── use-cases/
 │   │       ├── AuthRepository.ts         # Interfaz + tipo AuthResult
+│   │       ├── AuthResetRepository.ts    # Interfaz de recuperación de contraseña (delegada a InsForge)
 │   │       ├── LoginUser.ts              # Use-case login
 │   │       ├── RegisterUser.ts           # Use-case registro
-│   │       ├── RequestPasswordReset.ts   # Use-case solicitar reset (sin cablear)
-│   │       ├── ResetPassword.ts          # Use-case reset (sin cablear)
-│   │       ├── UserRepository.ts         # Interfaz de persistencia
-│   │       └── EmailService.ts           # Interfaz de email
+│   │       ├── RequestPasswordReset.ts   # Use-case solicitar reset
+│   │       └── ResetPassword.ts          # Use-case reset
 │   └── infrastructure/                   # CAPA INFRAESTRUCTURA (adaptadores)
 │       ├── controllers/
-│       │   └── AuthController.ts         # Controlador HTTP de auth
+│       │   ├── AuthController.ts         # Controlador HTTP de auth (login/registro)
+│       │   └── PasswordResetController.ts # Controlador HTTP de recuperación
 │       ├── insforge/
-│       │   ├── client.ts                 # Cliente InsForge (config env)
-│       │   └── InsForgeEmailService.ts   # Adaptador email (sin cablear)
-│       └── repositories/
-│           ├── InsForgeAuthRepository.ts # AuthRepository → InsForge SDK
-│           └── InsForgeUserRepository.ts # UserRepository → InsForge db (sin cablear)
+│       │   └── client.ts                 # Cliente InsForge (config env)
+│       ├── logger/
+│       │   ├── Logger.ts                 # Logger estructurado JSON
+│       │   └── requestLogger.ts          # Middleware de log de peticiones
 │       ├── middleware/
 │       │   └── rateLimit.ts              # express-rate-limit (login + reset-request)
+│       └── repositories/
+│           ├── InsForgeAuthRepository.ts       # AuthRepository → InsForge SDK
+│           └── InsForgeAuthResetRepository.ts  # AuthResetRepository → flujo nativo InsForge
 ├── tests/                                # Unit tests (Vitest)
 │   ├── core/
-│   │   ├── entities/User.test.ts
 │   │   └── use-cases/ (RegisterUser, LoginUser, RequestPasswordReset, ResetPassword)
-│   └── infrastructure/controllers/AuthController.test.ts
+│   └── infrastructure/ (controllers, repositories, insforge, logger, middleware)
 ├── dist/index.js                         # Salida del build (compilado)
 ├── Dockerfile
 ├── .dockerignore
 ├── .gitignore
+├── tsconfig.json
+├── eslint.config.js
+├── vitest.config.ts
 ├── package.json
-└── README.md                             # Solo título, sin contenido
+├── .env.example
+└── README.md
 ```
 
 - **Controladores:** `src/infrastructure/controllers/`
-- **Modelos / entidades:** `src/core/entities/`
 - **Migraciones / seeders:** **no existen** (la BD la gestiona InsForge)
 - **Middlewares:** `express.json()` global + rate limiting en `/auth/login` y `/auth/reset-password-request` vía `src/infrastructure/middleware/rateLimit.ts`.
 - **Tests:** `tests/` (espejo de `src/`)
@@ -113,18 +110,18 @@ experimental-bkoffc/
 ### Requisitos previos
 - **Node.js 18** (recomendado por el `Dockerfile`; el dev usa `@types/node ^20`).
 - **npm**.
-- Una cuenta/entorno **InsForge** con un proyecto configurado (auth + tabla `users` + email).
+- Una cuenta/entorno **InsForge** con un proyecto configurado (auth con `resetPasswordMethod` + envío de email).
 
 ### Variables de entorno críticas
 
-> ⚠️ **No existe `.env.example` en el repo** (solo está `.env` en `.gitignore`). Estas son las variables que el código lee realmente:
+Se documenta en `.env.example` (en `.gitignore` está el `.env` local). Variables que el código lee:
 
 | Variable | Dónde se usa | Propósito |
 |---|---|---|
 | `VITE_INSFORGE_URL` | `src/infrastructure/insforge/client.ts` | Base URL del proyecto InsForge. **Obligatoria.** |
 | `VITE_INSFORGE_KEY` | `src/infrastructure/insforge/client.ts` | Anon/API key de InsForge. **Obligatoria.** |
 | `PORT` | `src/index.ts` | Puerto HTTP (por defecto `3000`). |
-| `VITE_APP_URL` | `InsForgeEmailService.ts` (sin cablear) | URL base del frontend para el enlace de reset (default `http://localhost:5173`). |
+| `VITE_APP_URL` | `PasswordResetController.ts` | URL base del frontend; el enlace de reset usa `${VITE_APP_URL}/reset-password` (default `http://localhost:5173`). |
 
 > Los prefijos `VITE_` son heredados de un frontend Vite y pueden confundir; el servidor los lee directamente de `process.env`.
 
@@ -172,7 +169,7 @@ Rutas registradas en `src/index.ts`. **Ninguna requiere autenticación** (el pro
 | `GET` | `/` | Health-check / metadata del API | No |
 | `POST` | `/auth/register` | Registrar nuevo usuario | No |
 | `POST` | `/auth/login` | Iniciar sesión | No |
-| `POST` | `/auth/reset-password-request` | Solicitar email de recuperación de contraseña (body: `{ email }`) | No |
+| `POST` | `/auth/reset-password-request` | Solicitar email de recuperación (body: `{ email, redirectTo? }`, el `redirectTo` por defecto es `${VITE_APP_URL}/reset-password`) | No |
 | `POST` | `/auth/reset-password` | Confirmar cambio de contraseña (body: `{ token, password }`) | No |
 
 ### Formato de respuestas
@@ -216,10 +213,10 @@ El `token` puede ser `null` si el SDK no devuelve `accessToken` (depende del flu
   - `client.auth.signInWithPassword({ email, password })`
 - El `accessToken` devuelto por el SDK se propaga como `token` en las respuestas. Es un token **emitido y validado por InsForge**, no por esta app.
 
-### Validaciones propias (entidad `User` en `src/core/entities/User.ts`)
-- **Email:** valida formato con regex `^[^\s@]+@[^\s@]+\.[^\s@]+$` → error `"Invalid email format"`.
-- **Password:** longitud mínima **8 caracteres** → error `"Password too short"`.
-- La validación de email/password solo se dispara si el use-case usa la entidad `User`; los use-cases `LoginUser`/`RegisterUser` actuales pasan `email`/`password` **directamente** al repositorio sin instanciar `User` (la entidad no está cableada en el flujo real).
+### Recuperación de contraseña (delegada a InsForge nativo)
+- El flujo **no se reimplementa localmente**: usa `client.auth.sendResetPasswordEmail({ email, redirectTo })` y `client.auth.resetPassword({ newPassword, otp })`.
+- **InsForge previene la enumeración de usuarios**: devuelve éxito aunque el email no exista, por lo que este backend responde siempre el mismo mensaje genérico.
+- InsForge gestiona la generación/expiración del token/otp y el envío del email (config `resetPasswordMethod`: enlace o código de 6 dígitos).
 
 ### Roles y permisos
 - **No existe ningún sistema de roles, permisos ni políticas de autorización.** No hay middlewares de auth, ni casuística de "rol" en ninguna entidad/interfaz.
@@ -247,20 +244,24 @@ Protección contra fuerza bruta y spam de emails, definida en `src/infrastructur
 ### Estado actual de la suite
 
 ```
-Test Files  8 passed (8)
-     Tests  28 passed (28)
+Test Files  12 passed (12)
+     Tests  48 passed (48)
 ```
 
 | Suite | Tests |
 |---|---|
-| `tests/core/entities/User.test.ts` | 3 |
 | `tests/core/use-cases/RegisterUser.test.ts` | 2 |
 | `tests/core/use-cases/LoginUser.test.ts` | 2 |
-| `tests/core/use-cases/RequestPasswordReset.test.ts` | 3 |
-| `tests/core/use-cases/ResetPassword.test.ts` | 3 |
+| `tests/core/use-cases/RequestPasswordReset.test.ts` | 2 |
+| `tests/core/use-cases/ResetPassword.test.ts` | 1 |
 | `tests/infrastructure/controllers/AuthController.test.ts` | 6 |
-| `tests/infrastructure/controllers/PasswordResetController.test.ts` | 7 |
-| `tests/infrastructure/repositories/InsForgeUserRepository.test.ts` | 2 |
+| `tests/infrastructure/controllers/PasswordResetController.test.ts` | 8 |
+| `tests/infrastructure/repositories/InsForgeAuthRepository.test.ts` | 7 |
+| `tests/infrastructure/repositories/InsForgeAuthResetRepository.test.ts` | 6 |
+| `tests/infrastructure/insforge/client.test.ts` | 2 |
+| `tests/infrastructure/logger/Logger.test.ts` | 7 |
+| `tests/infrastructure/logger/requestLogger.test.ts` | 2 |
+| `tests/infrastructure/middleware/rateLimit.test.ts` | 3 |
 
 - Estilo **unit** con mocks manuales (`vi.fn()`) de las interfaces y del cliente InsForge (`vi.mock`).
 - **Sin tests de integración** (no hay llamadas reales a InsForge en las pruebas).
@@ -276,8 +277,8 @@ npm run typecheck   # tsc --noEmit
 ### Análisis estático / linters
 - **ESLint 9** (flat config `eslint.config.js`, `typescript-eslint`). Comando: `npm run lint`.
 - **TypeScript strict type-check**: `npm run typecheck` (`tsc --noEmit`).
-- **Cobertura de tests** (Vitest + `@vitest/coverage-v8`): umbrales 90%; el core (entities, use-cases, controllers) está al **100%**. Comando: `npm run test:coverage`.
-- Los adaptadores externos (SDK de InsForge), el cliente y el Composition Root se excluyen de la cobertura por ser wrappers finos que requieren mocking del SDK externo.
+- **Cobertura de tests** (Vitest + `@vitest/coverage-v8`): umbrales 90%; el core (use-cases) está al **100%**. Comando: `npm run test:coverage`.
+- Los adaptadores externos (SDK de InsForge) y el Composition Root se excluyen de la cobertura por ser wrappers finos que requieren mocking del SDK externo.
 
 ---
 
@@ -292,7 +293,7 @@ npm run typecheck   # tsc --noEmit
 - **Logging estructurado** (`src/infrastructure/logger/`): sin dependencias externas. `Logger` escribe **una línea JSON por evento** — `{ timestamp, level, message, ...meta }` — a `stdout` (debug/info/warn) o `stderr` (error), pensado para la agregación de logs de Dokploy.
   - Niveles: `debug < info < warn < error`. El nivel mínimo se ajusta con `LOG_LEVEL` (defecto `info`).
   - `createRequestLogger` es un middleware que emite un evento `request completed` (`method`, `path`, `status`, `durationMs`) al finalizar cada petición HTTP.
-  - Sustituye todos los `console.log`/`console.error` previos (arranque, `InsForgeUserRepository`, `InsForgeEmailService`, `client.ts`).
+  - Sustituye todos los `console.log`/`console.error` previos (arranque, repositorios InsForge, `client.ts`).
 
 ### Mantenimiento / operativa habitual
 - Revisar logs del contenedor en Dokploy o con:
@@ -306,19 +307,18 @@ npm run typecheck   # tsc --noEmit
 
 ## 8. Notas y Deuda Técnica Detectada
 
-> Estado actual (rama `feature/password-reset-flow`): los puntos 1–3 y 5 se han **resuelto** durante la sesión de cableado. Quedan pendientes 4 y 6 como mejoras de calidad.
+> Estado actual: el flujo de recuperación de contraseña se **delegó por completo en el flujo nativo de InsForge Auth**, eliminando el flujo custom que consultaba la tabla `users`.
 
-1. ✅ **Recuperación de contraseña cableada** (resuelto): `RequestPasswordReset`, `ResetPassword`, `InsForgeUserRepository` e `InsForgeEmailService` ahora se inyectan en `src/index.ts` y se exponen vía `POST /auth/reset-password-request` y `POST /auth/reset-password`.
-2. ✅ **Bug Vite corregido**: `InsForgeEmailService` usa ahora `process.env.VITE_APP_URL` y la API real `client.emails.send({ to, subject, html })` (el campo es `html`, no `text`).
-3. ✅ **Token criptográficamente seguro**: `RequestPasswordReset` usa `crypto.randomBytes(32)` (antes `Math.random()`) y el import incorrecto `{ crypto }` se corrigió a `{ randomBytes }`.
-4. ✅ **Tipado débil corregido**: `UserRepository` usa el tipo de dominio `ResetUser` (definido en `core/entities/User.ts`), sin `any`.
-5. ✅ **`tsconfig.json` añadido** (modo `strict`, `moduleResolution: bundler`); el typecheck ahora pasa limpio.
-6. ✅ **Herramientas de calidad añadidas**: ESLint 9 (flat config, `typescript-eslint`), cobertura de tests (Vitest v8, umbrales 90%, 100% en core) y scripts `lint`, `typecheck` y `test:coverage`. Se creó `.env.example` y el `README.md` del repo.
+1. ✅ **Recuperación de contraseña delegada a InsForge** (resuelto): se eliminó el flujo custom (`RequestPasswordReset`/`ResetPassword` con persistencia en tabla `users`, hashing de token, `InsForgeUserRepository`, `InsForgeEmailService`, `hashToken`, `ResetUser`). Ahora se usa `client.auth.sendResetPasswordEmail({ email, redirectTo })` y `client.auth.resetPassword({ newPassword, otp })`. **Esto arregla el bug de producción** (el `500 "Could not fetch user from database"` al consultar una tabla `users` no poblada).
+2. ✅ **Anti-enumeración de usuarios**: con el flujo nativo, InsForge devuelve éxito aunque el email no exista; el backend responde siempre el mismo mensaje genérico (antes revelaba existencia con `404 User not found`/`500`).
+3. ✅ **Eliminación de código duplicado/deuda**: se borraron la entidad `User`, `ResetUser`, `UserRepository`, `EmailService`, `hashToken` y los adaptadores de tabla `users`/email custom. Neto: menos superficie de bug y menos contrato ante el SDK.
+4. ✅ **`tsconfig.json` añadido** (modo `strict`, `moduleResolution: bundler`); el typecheck pasa limpio.
+5. ✅ **Herramientas de calidad**: ESLint 9 (flat config, `typescript-eslint`), cobertura de tests (Vitest v8, umbrales 90%, core al 100%) y scripts `lint`, `typecheck` y `test:coverage`. `.env.example` y `README.md` del repo.
 
 ### API real de InsForge (SDK `@insforge/sdk` 1.4.2) — referencia verificada
 - **Auth:** `client.auth.signUp({ email, password })`, `client.auth.signInWithPassword({ email, password })`.
-- **BD:** `client.database.from('users').select().eq(col, val).maybeSingle()` para consultas. Escrituras en `save()`: `insert(payload).select()` para nuevos usuarios, `update(payload).eq('id', id).select()` para usuarios existentes (flujo de reset). **NO** existe `client.db`.
-- **Email:** `client.emails.send({ to, subject, html })`. **NO** existe `client.email`. El campo de contenido es `html` (obligatorio), no `text`.
+- **Recuperación de contraseña (nativo):** `client.auth.sendResetPasswordEmail({ email, redirectTo? })` (previene enumeración) y `client.auth.resetPassword({ newPassword, otp })`. El `otp` es el token del enlace o el código de 6 dígitos según `resetPasswordMethod`.
+- **Email (auth):** la entrega de emails de verificación/reset la gestiona InsForge Auth (no se usa `client.emails.send` en este backend).
 
 #### Observabilidad (logging estructurado)
-7. ⏳/✅ **Logging estructurado añadido** (punto 5 de la lista original): se creó `src/infrastructure/logger/` (`Logger` + `createRequestLogger`) para sustituir todos los `console.log`/`console.error` y se cableó en `src/index.ts`, `client.ts`, `InsForgeUserRepository` e `InsForgeEmailService`. Nivel configurable vía `LOG_LEVEL`. Pendiente: si el proyecto crece, valorar agregación central (p. ej. volumen/DaemonSet de logs o un servicio externo) y/o export de trazas de request con correlación por `requestId`.
+7. ✅ **Logging estructurado añadido**: se creó `src/infrastructure/logger/` (`Logger` + `createRequestLogger`) sustituyendo todos los `console.log`/`console.error`. Nivel configurable vía `LOG_LEVEL`. **⏳ Pendiente** (si el proyecto crece): agregación central de logs y correlación de trazas por `requestId`.
