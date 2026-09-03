@@ -113,12 +113,12 @@ Se documenta en `.env.example` (en `.gitignore` está el `.env` local). Variable
 
 | Variable | Dónde se usa | Propósito |
 |---|---|---|
-| `VITE_INSFORGE_URL` | `src/infrastructure/insforge/client.ts` | Base URL del proyecto InsForge. **Obligatoria.** |
-| `VITE_INSFORGE_KEY` | `src/infrastructure/insforge/client.ts` | Anon/API key de InsForge. **Obligatoria.** |
+| `INSFORGE_URL` | `src/infrastructure/insforge/client.ts` | Base URL del proyecto InsForge. **Obligatoria.** |
+| `INSFORGE_KEY` | `src/infrastructure/insforge/client.ts` | Anon/API key de InsForge. **Obligatoria.** |
 | `PORT` | `src/index.ts` | Puerto HTTP (por defecto `3000`). |
-| `VITE_APP_URL` | `PasswordResetController.ts` | URL base del frontend; el enlace de reset usa `${VITE_APP_URL}/reset-password` (default `http://localhost:5173`). |
+| `APP_URL` | `PasswordResetController.ts` | URL base del frontend; el enlace de reset usa `${APP_URL}/reset-password` (default `http://localhost:5173`). |
 
-> Los prefijos `VITE_` son heredados de un frontend Vite y pueden confundir; el servidor los lee directamente de `process.env`.
+> Se leen directamente de `process.env` en el servidor Node, sin prefijo `VITE_` (se eliminó el prefijo heredado de un frontend Vite).
 
 ### Instalación y arranque local
 
@@ -127,8 +127,8 @@ Se documenta en `.env.example` (en `.gitignore` está el `.env` local). Variable
 npm install
 
 # 2. Configurar entorno
-#    export VITE_INSFORGE_URL=https://...   (obligatorio)
-#    export VITE_INSFORGE_KEY=...           (obligatorio)
+#    export INSFORGE_URL=https://...   (obligatorio)
+#    export INSFORGE_KEY=...           (obligatorio)
 #    export PORT=3000                       (opcional)
 
 # 3. Modo desarrollo (watch, ts-node/esm)
@@ -144,8 +144,8 @@ npm start
 ```bash
 docker build -t experimental-bkoffc .
 docker run -p 3000:3000 \
-  -e VITE_INSFORGE_URL=https://... \
-  -e VITE_INSFORGE_KEY=... \
+  -e INSFORGE_URL=https://... \
+  -e INSFORGE_KEY=... \
   experimental-bkoffc
 ```
 
@@ -164,7 +164,7 @@ Rutas registradas en `src/index.ts`. **Ninguna requiere autenticación** (el pro
 | `GET` | `/` | Health-check / metadata del API | No |
 | `POST` | `/auth/register` | Registrar nuevo usuario | No |
 | `POST` | `/auth/login` | Iniciar sesión | No |
-| `POST` | `/auth/reset-password-request` | Solicitar email de recuperación (body: `{ email, redirectTo? }`, el `redirectTo` por defecto es `${VITE_APP_URL}/reset-password`) | No |
+| `POST` | `/auth/reset-password-request` | Solicitar email de recuperación (body: `{ email, redirectTo? }`, el `redirectTo` por defecto es `${APP_URL}/reset-password`) | No |
 | `POST` | `/auth/reset-password` | Confirmar cambio de contraseña (body: `{ token, password }`) | No |
 
 ### Formato de respuestas

@@ -51,8 +51,8 @@ manual en un *Composition Root* (`src/index.ts`). No hay capa de use-cases.
 npm install
 
 # 2. Variables de entorno (ver .env.example)
-export VITE_INSFORGE_URL=https://tu-proyecto.insforge.app   # obligatorio
-export VITE_INSFORGE_KEY=tu-anon-key                        # obligatorio
+export INSFORGE_URL=https://tu-proyecto.insforge.app   # obligatorio
+export INSFORGE_KEY=tu-anon-key                        # obligatorio
 export PORT=3000                                            # opcional
 export LOG_LEVEL=info                                       # opcional (debug|info|warn|error)
 
@@ -69,8 +69,8 @@ npm start
 ```bash
 docker build -t experimental-bkoffc .
 docker run -p 3000:3000 \
-  -e VITE_INSFORGE_URL=https://... \
-  -e VITE_INSFORGE_KEY=... \
+  -e INSFORGE_URL=https://... \
+  -e INSFORGE_KEY=... \
   experimental-bkoffc
 ```
 
@@ -124,7 +124,7 @@ curl -X POST http://localhost:3000/auth/login \
 
 ### `POST /auth/reset-password-request`
 Solicita el email de recuperación de contraseña (delegado al flujo nativo de InsForge).
-Opcionalmente admite `redirectTo` (por defecto `${VITE_APP_URL}/reset-password`) para
+Opcionalmente admite `redirectTo` (por defecto `${APP_URL}/reset-password`) para
 configurar a dónde redirige el frontend con el token del enlace.
 
 ```bash
