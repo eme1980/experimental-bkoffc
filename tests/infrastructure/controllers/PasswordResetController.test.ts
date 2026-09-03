@@ -9,11 +9,11 @@ describe('PasswordResetController', () => {
   let res: Partial<Response>;
 
   beforeAll(() => {
-    process.env.VITE_APP_URL = 'https://app.example.com';
+    process.env.APP_URL = 'https://app.example.com';
   });
 
   afterAll(() => {
-    delete process.env.VITE_APP_URL;
+    delete process.env.APP_URL;
   });
 
   beforeEach(() => {
@@ -48,7 +48,7 @@ describe('PasswordResetController', () => {
       });
     });
 
-    it('should default redirectTo to VITE_APP_URL/reset-password when not provided', async () => {
+    it('should default redirectTo to APP_URL/reset-password when not provided', async () => {
       req.body = { email: 'test@example.com' };
       vi.mocked(authResetRepository.sendResetPasswordEmail).mockResolvedValue(undefined);
 
@@ -60,8 +60,8 @@ describe('PasswordResetController', () => {
       );
     });
 
-    it('should fall back to localhost:5173 when VITE_APP_URL is not set', async () => {
-      process.env.VITE_APP_URL = '';
+    it('should fall back to localhost:5173 when APP_URL is not set', async () => {
+      process.env.APP_URL = '';
       req.body = { email: 'test@example.com' };
       vi.mocked(authResetRepository.sendResetPasswordEmail).mockResolvedValue(undefined);
 
