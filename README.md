@@ -25,12 +25,12 @@ la autenticación, la persistencia y el envío de email en el BaaS **InsForge**.
 | Lenguaje    | TypeScript (ESM)                                  |
 | HTTP        | Express `^5.2.1`                                  |
 | Runtime     | Node.js 18                                        |
-| BaaS        | InsForge (`@insforge/sdk ^1.4.2`) — auth, BD, email |
+| BaaS        | InsForge (`@insforge/sdk ^1.4.2`) — auth, reset de contraseña y email |
 | Build       | esbuild `^0.28.2`                                 |
 | Tests       | Vitest `^1.0.0`                                   |
 
-Arquitectura: **Clean Architecture en 2 capas** — el **Core** (entidades + use-cases +
-interfaces) está aislado de la **Infraestructura** (controllers + adaptadores de InsForge).
+Arquitectura: **Clean Architecture en 2 capas** — el **Core** (use-cases + interfaces)
+está aislado de la **Infraestructura** (controllers + adaptadores de InsForge).
 La inyección de dependencias se hace manualmente en un *Composition Root* (`src/index.ts`).
 
 ---
@@ -40,7 +40,7 @@ La inyección de dependencias se hace manualmente en un *Composition Root* (`src
 ### Requisitos
 - Node.js 18+
 - npm
-- Un proyecto **InsForge** (tabla `users` + email configurado)
+- Un proyecto **InsForge** (auth + correo de verificación/reset configurado)
 
 ### Instalación y arranque local
 
@@ -121,7 +121,9 @@ curl -X POST http://localhost:3000/auth/login \
 ```
 
 ### `POST /auth/reset-password-request`
-Solicita el email de recuperación de contraseña.
+Solicita el email de recuperación de contraseña (delegado al flujo nativo de InsForge).
+Opcionalmente admite `redirectTo` (por defecto `${VITE_APP_URL}/reset-password`) para
+configurar a dónde redirige el frontend con el token del enlace.
 
 ```bash
 curl -X POST http://localhost:3000/auth/reset-password-request \
@@ -164,7 +166,8 @@ npm test        # ejecuta la suite (Vitest)
 npm run build
 ```
 
-Suite actual: **26 tests / 7 archivos** (use-cases, entidad y controllers), en verde.
+Suite actual: **48 tests / 12 archivos** (use-cases, controllers, repositorios, logger,
+middleware), en verde.
 
 ---
 
@@ -174,12 +177,13 @@ Suite actual: **26 tests / 7 archivos** (use-cases, entidad y controllers), en v
 src/
 ├── index.ts                     # Composition Root + rutas + arranque
 ├── core/                        # CAPA CORE (dominio, sin deps externas)
-│   ├── entities/User.ts         # Entidad + tipo ResetUser
 │   └── use-cases/               # Use-cases + interfaces (contratos)
 └── infrastructure/              # CAPA INFRA (adaptadores)
     ├── controllers/             # AuthController, PasswordResetController
-    ├── insforge/                # client + InsForgeEmailService
-    └── repositories/            # InsForgeAuthRepository, InsForgeUserRepository
+    ├── insforge/                # client
+    ├── logger/                  # Logger + requestLogger
+    ├── middleware/              # rateLimit
+    └── repositories/            # InsForgeAuthRepository, InsForgeAuthResetRepository
 tests/                           # Tests (espejo de src/)
 ```
 
