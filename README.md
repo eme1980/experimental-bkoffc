@@ -6,7 +6,8 @@ la autenticación, la persistencia y el envío de email en el BaaS **InsForge**.
 
 > Su objetivo es servir como base de referencia para retomar el desarrollo sin
 > pérdida de contexto. La documentación técnica detallada vive en
-> [`DOCUMENTATION.md`](./DOCUMENTATION.md).
+> [`DOCUMENTATION.md`](./DOCUMENTATION.md) y el historial de cambios en
+> [`CHANGELOG.md`](./CHANGELOG.md).
 
 ---
 
