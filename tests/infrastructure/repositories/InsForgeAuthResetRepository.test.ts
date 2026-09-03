@@ -56,6 +56,17 @@ describe('InsForgeAuthResetRepository', () => {
 
       await expect(repo.sendResetPasswordEmail('a@b.com')).rejects.toThrow('send failed');
     });
+
+    it('should throw a generic message when error has no message', async () => {
+      vi.mocked(insforgeClient.auth.sendResetPasswordEmail).mockResolvedValue({
+        data: null,
+        error: {},
+      } as any);
+
+      await expect(repo.sendResetPasswordEmail('a@b.com')).rejects.toThrow(
+        'Failed to request password reset',
+      );
+    });
   });
 
   describe('resetPassword', () => {

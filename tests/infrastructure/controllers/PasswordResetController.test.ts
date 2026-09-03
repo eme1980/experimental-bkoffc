@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 import { Request, Response } from 'express';
 import { PasswordResetController } from '../../../src/infrastructure/controllers/PasswordResetController';
 
@@ -10,6 +10,10 @@ describe('PasswordResetController', () => {
 
   beforeAll(() => {
     process.env.VITE_APP_URL = 'https://app.example.com';
+  });
+
+  afterAll(() => {
+    delete process.env.VITE_APP_URL;
   });
 
   beforeEach(() => {
@@ -53,6 +57,19 @@ describe('PasswordResetController', () => {
       expect(authResetRepository.sendResetPasswordEmail).toHaveBeenCalledWith(
         'test@example.com',
         'https://app.example.com/reset-password',
+      );
+    });
+
+    it('should fall back to localhost:5173 when VITE_APP_URL is not set', async () => {
+      process.env.VITE_APP_URL = '';
+      req.body = { email: 'test@example.com' };
+      vi.mocked(authResetRepository.sendResetPasswordEmail).mockResolvedValue(undefined);
+
+      await controller.requestReset(req as Request, res as Response);
+
+      expect(authResetRepository.sendResetPasswordEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        'http://localhost:5173/reset-password',
       );
     });
 
