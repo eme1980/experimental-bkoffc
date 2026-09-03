@@ -7,6 +7,10 @@ proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+### Añadido
+
+- **`ARCHITECTURE.md`** — documento de diseño y visión que define el rumbo a medio plazo: convertir el backend en un servicio de gestión de usuarios compartido entre varias webs/apps. Acota el alcance (auth centralizado + perfil básico + memberships), difiere SSO y roles multi-app a cuando exista una segunda app real, e incluye hoja de ruta (CORS → client credentials → usuarios+memberships → sesión portable) y riesgos.
+
 ### Cambiado
 
 - **Renombrado de variables de entorno:** `VITE_INSFORGE_URL` → `INSFORGE_URL`, `VITE_INSFORGE_KEY` → `INSFORGE_KEY` y `VITE_APP_URL` → `APP_URL`. Se elimina el prefijo `VITE_` (heredado de un frontend Vite) que confundía en un servidor Node/Express. **IMPORTANTE:** actualizar las variables de entorno en DoKploy (`INSFORGE_URL`, `INSFORGE_KEY`, `APP_URL`) tras desplegar esta versión.
