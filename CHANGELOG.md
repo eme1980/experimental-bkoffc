@@ -10,7 +10,7 @@ proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 ### Añadido
 
 - **Middleware CORS** (`src/infrastructure/middleware/cors.ts`, dependencia `cors ^2.8.6`): permite que el API sea consumido por webs/apps de distinto origen. Lista de orígenes permitidos configurable vía `CORS_ORIGINS` (separados por comas); origen autorizado → `Access-Control-Allow-Origin` + credenciales; `CORS_ORIGINS` vacío → se deniega todo origen cross-origin (no se usa `*`). Aplicado globalmente en `src/index.ts`.
-- **`ARCHITECTURE.md`** — documento de diseño y visión que define el rumbo a medio plazo: convertir el backend en un servicio de gestión de usuarios compartido entre varias webs/apps. Acota el alcance (auth centralizado + perfil básico + memberships), difiere SSO y roles multi-app a cuando exista una segunda app real, e incluye hoja de ruta (CORS → client credentials → usuarios+memberships → sesión portable) y riesgos.
+- **`ARCHITECTURE.md`** — documento de diseño y visión que define el rumbo a medio plazo: convertir el backend en un servicio de gestión de usuarios compartido entre varias webs/apps. Acota el alcance (auth centralizado + perfil básico + memberships), difiere SSO y roles multi-app a cuando exista una segunda app real, e incluye hoja de ruta (CORS → client credentials → usuarios+memberships → sesión portable) y riesgos. **Actualizado:** se documenta que InsForge ya ofrece "OAuth Server mode" (proveedor OAuth 2.0/OIDC con client_id/secret por app y scopes) para la identificación de clientes, por lo que T-02 queda **diferido** (revisar el BaaS antes de construir client-credentials propios); T-03 se apoya en el módulo `database` + RLS de InsForge.
 
 ### Cambiado
 
