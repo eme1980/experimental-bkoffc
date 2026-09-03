@@ -14,8 +14,8 @@ export class PasswordResetController {
 
       // InsForge envía el email de recuperación y gestiona el enlace/otp. El
       // redirectTo lleva al frontend que recogerá el token del enlace. Si no se
-      // pasa uno en el request, se deriva de APP_URL (VITE_APP_URL).
-      const appUrl = process.env.VITE_APP_URL || 'http://localhost:5173';
+      // pasa uno en el request, se deriva de APP_URL (process.env.APP_URL).
+      const appUrl = process.env.APP_URL || 'http://localhost:5173';
       const target = redirectTo || `${appUrl}/reset-password`;
 
       await this.authResetRepository.sendResetPasswordEmail(email, target);
