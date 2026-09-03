@@ -100,10 +100,10 @@ Cómo encajará el **servicio** con las distintas apps que lo consuman:
 
 Orden propuesto para ir evolucionando el servicio, **en serie (una rama + un PR a la vez)**, con TDD.
 
-### T-01 — CORS configurable
+### T-01 — CORS configurable ✅ (implementado)
 - **Qué:** permitir consumo desde varios dominios/apps.
-- **Cómo:** cabeceras `Access-Control-Allow-Origin` desde una lista de orígenes configurable (env o tabla), no `*` para endpoints con credenciales.
-- **Por qué primero:** sin CORS, ninguna web con dominio distinto puede llamar al servicio.
+- **Cómo:** se implementó con `cors` en `src/infrastructure/middleware/cors.ts`, configurable por env `CORS_ORIGINS` (lista separada por comas). Origen en lista → `Access-Control-Allow-Origin` reflejado + credenciales; `CORS_ORIGINS` vacío → se deniega todo origen cross-origin (no se usa `*`).
+- **Estado:** hecho (ver `DOCUMENTATION.md` §5).
 
 ### T-02 — Identificación de clientes (client credentials / API keys por app)
 - **Qué:** cada app se autentica ante el servicio (client_id + secret) para que el rate-limit y los permisos sean por-app, no solo por IP.

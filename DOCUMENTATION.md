@@ -73,7 +73,8 @@ experimental-bkoffc/
 │       │   ├── Logger.ts                 # Logger estructurado JSON
 │       │   └── requestLogger.ts          # Middleware de log de peticiones
 │       ├── middleware/
-│       │   └── rateLimit.ts              # express-rate-limit (login + reset-request)
+│       │   ├── cors.ts                 # Middleware CORS configurable (CORS_ORIGINS)
+│       │   └── rateLimit.ts            # express-rate-limit (login + reset-request)
 │       └── repositories/
 │           ├── InsForgeAuthRepository.ts       # AuthRepository → InsForge SDK
 │           └── InsForgeAuthResetRepository.ts  # AuthResetRepository → flujo nativo InsForge
@@ -95,7 +96,7 @@ experimental-bkoffc/
 
 - **Controladores:** `src/infrastructure/controllers/`
 - **Migraciones / seeders:** **no existen** (la BD la gestiona InsForge)
-- **Middlewares:** `express.json()` global + rate limiting en `/auth/login` y `/auth/reset-password-request` vía `src/infrastructure/middleware/rateLimit.ts`.
+- **Middlewares:** `express.json()` global + CORS global (`corsMiddleware`, configurable vía `CORS_ORIGINS`) + rate limiting en `/auth/login` y `/auth/reset-password-request` vía `src/infrastructure/middleware/rateLimit.ts`.
 - **Tests:** `tests/` (espejo de `src/`)
 
 ---
@@ -117,6 +118,7 @@ Se documenta en `.env.example` (en `.gitignore` está el `.env` local). Variable
 | `INSFORGE_KEY` | `src/infrastructure/insforge/client.ts` | Anon/API key de InsForge. **Obligatoria.** |
 | `PORT` | `src/index.ts` | Puerto HTTP (por defecto `3000`). |
 | `APP_URL` | `PasswordResetController.ts` | URL base del frontend; el enlace de reset usa `${APP_URL}/reset-password` (default `http://localhost:5173`). |
+| `CORS_ORIGINS` | `src/infrastructure/middleware/cors.ts` | Lista de orígenes permitidos para CORS (separados por comas). Vacío = se deniega todo origen cross-origin. |
 
 > Se leen directamente de `process.env` en el servidor Node, sin prefijo `VITE_` (se eliminó el prefijo heredado de un frontend Vite).
 
@@ -229,6 +231,14 @@ Protección contra fuerza bruta y spam de emails, definida en `src/infrastructur
 - **`app.set('trust proxy', 1)`** en `src/index.ts`: necesario porque la app corre detrás del proxy inverso de Dokploy. Sin confiar en proxy, express-rate-limit usaría la IP del proxy para todos los clientes (bloqueo colectivo) o lanzaría `ERR_ERL_PERMISSIVE_TRUST_PROXY` al detectar `X-Forwarded-For`.
 - **Nota (fuera de alcance):** `POST /auth/register` y `POST /auth/reset-password` **no** tienen rate limit. `register` podría ser candidato a fuerza bruta/creación masiva de cuentas si se quiere endurecer en el futuro.
 
+### CORS (`cors ^2.8.6`)
+Permite que el API sea consumido por webs/apps de distinto dominio. Definido en `src/infrastructure/middleware/cors.ts` y aplicado globalmente en `src/index.ts`:
+- Lista de orígenes permitidos configurada vía `CORS_ORIGINS` (separados por comas).
+- Origen en la lista → se refleja en `Access-Control-Allow-Origin` y se habilitan credenciales (`Access-Control-Allow-Credentials: true`).
+- Origen NO en la lista → no se emite cabecera CORS (el navegador bloquea).
+- `CORS_ORIGINS` vacío → se deniega **todo** origen cross-origin (no se usa `*`, porque los endpoints con token no deben tener CORS abierto).
+- Peticiones sin cabecera `Origin` (curl, server-to-server, mismo origen) siempre permitidas.
+
 ---
 
 ## 6. Testing y Calidad de Código
@@ -239,8 +249,8 @@ Protección contra fuerza bruta y spam de emails, definida en `src/infrastructur
 ### Estado actual de la suite
 
 ```
-Test Files  8 passed (8)
-     Tests  45 passed (45)
+Test Files  9 passed (9)
+     Tests  51 passed (51)
 ```
 
 | Suite | Tests |
@@ -253,6 +263,7 @@ Test Files  8 passed (8)
 | `tests/infrastructure/logger/Logger.test.ts` | 7 |
 | `tests/infrastructure/logger/requestLogger.test.ts` | 2 |
 | `tests/infrastructure/middleware/rateLimit.test.ts` | 3 |
+| `tests/infrastructure/middleware/cors.test.ts` | 6 |
 
 - Estilo **unit** con mocks manuales (`vi.fn()`) de las interfaces y del cliente InsForge (`vi.mock`).
 - **Sin tests de integración** (no hay llamadas reales a InsForge en las pruebas).
