@@ -8,6 +8,8 @@ import { RequestPasswordReset } from './core/use-cases/RequestPasswordReset';
 import { ResetPassword } from './core/use-cases/ResetPassword';
 import { AuthController } from './infrastructure/controllers/AuthController';
 import { PasswordResetController } from './infrastructure/controllers/PasswordResetController';
+import { logger } from './infrastructure/logger/Logger';
+import { createRequestLogger } from './infrastructure/logger/requestLogger';
 import {
   loginRateLimiter,
   resetPasswordRequestRateLimiter,
@@ -15,16 +17,12 @@ import {
 
 const app = express();
 app.use(express.json());
+// Logging estructurado de peticiones (requestId + método + status + duración).
+app.use(createRequestLogger(logger));
 // Detrás del proxy inverso de Dokploy las peticiones llegan con X-Forwarded-For:
 // sin confiar en proxy, express-rate-limit usaría la IP del proxy para todos y
 // bloquearía a todos los clientes por igual (o lanzaría ERR_ERL_PERMISSIVE_TRUST_PROXY).
 app.set('trust proxy', 1);
-import { logger } from './infrastructure/logger/Logger';
-import { createRequestLogger } from './infrastructure/logger/requestLogger';
-
-const app = express();
-app.use(express.json());
-app.use(createRequestLogger(logger));
 
 // Composition Root: Inyección de Dependencias
 const authRepository = new InsForgeAuthRepository();
