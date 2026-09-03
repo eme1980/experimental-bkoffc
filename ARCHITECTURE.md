@@ -91,7 +91,7 @@ Cómo encajará el **servicio** con las distintas apps que lo consuman:
               └─────────────────┘
 ```
 
-- Cada app se identifica ante el servicio (ver T-01 — client credentials).
+- Cada app se identifica ante el servicio. **InsForge ya ofrece un "OAuth Server mode"** (proveedor OAuth 2.0/OIDC: client_id + client_secret por app y scopes) para este caso — antes de construir identificación propia, revisar si basta (ver T-02).
 - La lista de usuarios es **única**: un email = una identidad; las apps se relacionan con ella vía membresías.
 
 ---
@@ -105,13 +105,14 @@ Orden propuesto para ir evolucionando el servicio, **en serie (una rama + un PR 
 - **Cómo:** se implementó con `cors` en `src/infrastructure/middleware/cors.ts`, configurable por env `CORS_ORIGINS` (lista separada por comas). Origen en lista → `Access-Control-Allow-Origin` reflejado + credenciales; `CORS_ORIGINS` vacío → se deniega todo origen cross-origin (no se usa `*`).
 - **Estado:** hecho (ver `DOCUMENTATION.md` §5).
 
-### T-02 — Identificación de clientes (client credentials / API keys por app)
-- **Qué:** cada app se autentica ante el servicio (client_id + secret) para que el rate-limit y los permisos sean por-app, no solo por IP.
-- **Por qué:** en un servicio multi-cliente, el rate-limit por IP ya no basta para distinguir apps.
+### T-02 — Identificación de clientes (client credentials / API keys por app) ⏳ ✋ revisar antes
+- **Qué:** distinguir qué app llama al servicio (client_id + secret) para rate-limit y permisos por-app, no solo por IP.
+- **⚠️ Hallazgo:** **InsForge ya tiene "OAuth Server mode"** (`docs.insforge.dev/oauth-server`): actúa como proveedor OAuth 2.0/OIDC, emite **client_id + client_secret por app**, scopes (`user:read`, etc.), flujo Authorization Code + PKCE y endpoint de perfil. **Antes de construir identificación propia, agotar esto** — montar client-credentials a mano duplicaría el BaaS (v. directriz "aprovecha InsForge", §7).
+- **Estado:** **diferido** hasta que exista una segunda app real. Cuando haya una, primero evaluar si el OAuth Server de InsForge cubre la identificación; solo si no, construir capa propia.
 
 ### T-03 — Modelo de datos usuarios + memberships
 - **Qué:** entidades `User` (identidad) y `Membership` (userId + appId + nivel de acceso/rol).
-- **Cómo:** capa propia sobre la DB de InsForge (`client.database.from(...)`), con su repo + tests TDD.
+- **Cómo:** sobre el módulo `database` del SDK de InsForge (`client.database.from(...)`), reutilizando su PostgreSQL/PostgREST (no una capa SQL propia). Con RLS (row-level security) de InsForge leyendo el JWT, la autorización por-app puede salir del BaaS.
 - **Nota:** aquí hay que decidir el **ancla de identidad** (email único, u otro) antes de codificar.
 
 ### T-04 — Sesión portable (JWT/refresh validado por este servicio)
