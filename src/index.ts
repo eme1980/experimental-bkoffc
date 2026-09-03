@@ -9,9 +9,13 @@ import {
   loginRateLimiter,
   resetPasswordRequestRateLimiter,
 } from './infrastructure/middleware/rateLimit';
+import { corsMiddleware } from './infrastructure/middleware/cors';
 
 const app = express();
 app.use(express.json());
+// CORS configurable (lista de orígenes permitidos vía CORS_ORIGINS). Necesario
+// porque el servicio será consumido por varias webs/apps de distinto origen.
+app.use(corsMiddleware);
 // Logging estructurado de peticiones (requestId + método + status + duración).
 app.use(createRequestLogger(logger));
 // Detrás del proxy inverso de Dokploy las peticiones llegan con X-Forwarded-For:

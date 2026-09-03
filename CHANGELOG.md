@@ -9,11 +9,12 @@ proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- **Middleware CORS** (`src/infrastructure/middleware/cors.ts`, dependencia `cors ^2.8.6`): permite que el API sea consumido por webs/apps de distinto origen. Lista de orígenes permitidos configurable vía `CORS_ORIGINS` (separados por comas); origen autorizado → `Access-Control-Allow-Origin` + credenciales; `CORS_ORIGINS` vacío → se deniega todo origen cross-origin (no se usa `*`). Aplicado globalmente en `src/index.ts`.
 - **`ARCHITECTURE.md`** — documento de diseño y visión que define el rumbo a medio plazo: convertir el backend en un servicio de gestión de usuarios compartido entre varias webs/apps. Acota el alcance (auth centralizado + perfil básico + memberships), difiere SSO y roles multi-app a cuando exista una segunda app real, e incluye hoja de ruta (CORS → client credentials → usuarios+memberships → sesión portable) y riesgos.
 
 ### Cambiado
 
-- **Renombrado de variables de entorno:** `VITE_INSFORGE_URL` → `INSFORGE_URL`, `VITE_INSFORGE_KEY` → `INSFORGE_KEY` y `VITE_APP_URL` → `APP_URL`. Se elimina el prefijo `VITE_` (heredado de un frontend Vite) que confundía en un servidor Node/Express. **IMPORTANTE:** actualizar las variables de entorno en DoKploy (`INSFORGE_URL`, `INSFORGE_KEY`, `APP_URL`) tras desplegar esta versión.
+- **Renombrado de variables de entorno:** incluye además **`CORS_ORIGINS`** (nueva, opcional): lista de orígenes CORS permitidos. Ver la entrada de CORS en *Añadido*.
 
 ## [1.0.0] - 2026-09-03
 

@@ -67,6 +67,12 @@ describe('cors middleware', () => {
     expect(res.headers.get('access-control-allow-credentials')).toBe('true');
   });
 
+  it('permite peticiones sin cabecera Origin (curl, server-to-server, mismo origen)', async () => {
+    const res = await getWithOrigin(allowed.baseUrl);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
   it('parseAllowedOrigins normaliza lista separada por comas', () => {
     expect(parseAllowedOrigins(' https://a.com ,https://b.com,  ')).toEqual([
       'https://a.com',
