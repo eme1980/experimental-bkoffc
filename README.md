@@ -29,9 +29,10 @@ la autenticación, la persistencia y el envío de email en el BaaS **InsForge**.
 | Build       | esbuild `^0.28.2`                                 |
 | Tests       | Vitest `^1.0.0`                                   |
 
-Arquitectura: **Clean Architecture en 2 capas** — el **Core** (use-cases + interfaces)
+Arquitectura: **Clean Architecture en 2 capas** — el **Core** (interfaces-contrato)
 está aislado de la **Infraestructura** (controllers + adaptadores de InsForge).
-La inyección de dependencias se hace manualmente en un *Composition Root* (`src/index.ts`).
+Los controllers inyectan directamente las interfaces del repositorio; el cableado es
+manual en un *Composition Root* (`src/index.ts`). No hay capa de use-cases.
 
 ---
 
@@ -166,8 +167,7 @@ npm test        # ejecuta la suite (Vitest)
 npm run build
 ```
 
-Suite actual: **48 tests / 12 archivos** (use-cases, controllers, repositorios, logger,
-middleware), en verde.
+Suite actual: **45 tests / 8 archivos** (controllers, repositorios, logger, middleware), en verde.
 
 ---
 
@@ -177,7 +177,7 @@ middleware), en verde.
 src/
 ├── index.ts                     # Composition Root + rutas + arranque
 ├── core/                        # CAPA CORE (dominio, sin deps externas)
-│   └── use-cases/               # Use-cases + interfaces (contratos)
+│   └── use-cases/               # Solo interfaces-contrato (AuthRepository, AuthResetRepository)
 └── infrastructure/              # CAPA INFRA (adaptadores)
     ├── controllers/             # AuthController, PasswordResetController
     ├── insforge/                # client
