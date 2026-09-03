@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { Request, Response } from 'express';
 import { PasswordResetController } from '../../../src/infrastructure/controllers/PasswordResetController';
 
@@ -8,6 +8,10 @@ describe('PasswordResetController', () => {
   let controller: PasswordResetController;
   let req: Partial<Request>;
   let res: Partial<Response>;
+
+  beforeAll(() => {
+    process.env.VITE_APP_URL = 'https://app.example.com';
+  });
 
   beforeEach(() => {
     requestPasswordReset = { execute: vi.fn() };
@@ -23,15 +27,32 @@ describe('PasswordResetController', () => {
   });
 
   describe('requestReset', () => {
-    it('should return 200 when request succeeds', async () => {
+    it('should delegate with redirectTo when provided', async () => {
+      req.body = { email: 'test@example.com', redirectTo: 'https://miapp.es/reset' };
+      vi.mocked(requestPasswordReset.execute).mockResolvedValue(undefined);
+
+      await controller.requestReset(req as Request, res as Response);
+
+      expect(requestPasswordReset.execute).toHaveBeenCalledWith(
+        'test@example.com',
+        'https://miapp.es/reset',
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'If the email exists, a recovery link was sent',
+      });
+    });
+
+    it('should default redirectTo to VITE_APP_URL/reset-password when not provided', async () => {
       req.body = { email: 'test@example.com' };
       vi.mocked(requestPasswordReset.execute).mockResolvedValue(undefined);
 
       await controller.requestReset(req as Request, res as Response);
 
-      expect(requestPasswordReset.execute).toHaveBeenCalledWith('test@example.com');
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ message: 'If the email exists, a recovery link was sent' });
+      expect(requestPasswordReset.execute).toHaveBeenCalledWith(
+        'test@example.com',
+        'https://app.example.com/reset-password',
+      );
     });
 
     it('should return 400 when email is missing', async () => {
@@ -42,41 +63,45 @@ describe('PasswordResetController', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Email is required' });
     });
 
-    it('should return 404 when the user does not exist', async () => {
+    it('should return a generic success message even if the email does not exist', async () => {
       req.body = { email: 'unknown@example.com' };
-      vi.mocked(requestPasswordReset.execute).mockRejectedValue(new Error('User not found'));
+      vi.mocked(requestPasswordReset.execute).mockResolvedValue(undefined);
 
       await controller.requestReset(req as Request, res as Response);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'If the email exists, a recovery link was sent',
+      });
     });
 
-    it('should return 500 on send failure', async () => {
+    it('should return 400 on delegate failure', async () => {
       req.body = { email: 'test@example.com' };
-      vi.mocked(requestPasswordReset.execute).mockRejectedValue(new Error('Failed to send recovery email'));
+      vi.mocked(requestPasswordReset.execute).mockRejectedValue(
+        new Error('Failed to request reset'),
+      );
 
       await controller.requestReset(req as Request, res as Response);
 
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Failed to send recovery email' });
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Failed to request reset' });
     });
   });
 
   describe('resetPassword', () => {
-    it('should return 200 when password is reset', async () => {
-      req.body = { token: 'valid-token', password: 'NewPassword123' };
+    it('should delegate with otp (token) and password, returning 200', async () => {
+      req.body = { token: 'otp-token', password: 'NewPassword123' };
       vi.mocked(resetPassword.execute).mockResolvedValue(undefined);
 
       await controller.reset(req as Request, res as Response);
 
-      expect(resetPassword.execute).toHaveBeenCalledWith('valid-token', 'NewPassword123');
+      expect(resetPassword.execute).toHaveBeenCalledWith('otp-token', 'NewPassword123');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'Password updated successfully' });
     });
 
     it('should return 400 when token or password is missing', async () => {
-      req.body = { token: 'valid-token' };
+      req.body = { token: 'otp-token' };
 
       await controller.reset(req as Request, res as Response);
 
@@ -85,7 +110,7 @@ describe('PasswordResetController', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Token and password are required' });
     });
 
-    it('should return 400 when token is invalid or expired', async () => {
+    it('should return 400 when reset fails', async () => {
       req.body = { token: 'bad-token', password: 'NewPassword123' };
       vi.mocked(resetPassword.execute).mockRejectedValue(new Error('Invalid or expired token'));
 
